@@ -1,11 +1,65 @@
-import { Link } from "react-router-dom";
-import { Mail, Lock, User, Github, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Mail, Lock, User, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { SEO } from "@/components/seo/SEO";
+import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
 
 export function Signup() {
+  const { signupWithEmail, loginWithGoogle, user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get("ref") || "";
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  if (user) {
+    navigate("/dashboard", { replace: true });
+    return null;
+  }
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signupWithEmail(email, password, name);
+      navigate("/dashboard");
+    } catch (err: any) {
+      if (err.message?.includes("email-already-in-use")) {
+        setError("This email is already registered. Try signing in instead.");
+      } else {
+        setError(err.message || "Signup failed");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await loginWithGoogle();
+      navigate("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Google signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <SEO 
+      <SEO
         title="Sign Up | Zemplate.ai"
         description="Create a free Zemplate.ai account and get 5 free credits to start generating stunning AI images."
       />
@@ -21,14 +75,21 @@ export function Signup() {
         </div>
 
         <div className="glass-panel rounded-3xl p-8">
+          {error && (
+            <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
           <div className="space-y-4 mb-6">
-            <button className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white text-black font-medium hover:bg-white/90 transition-colors">
+            <button
+              onClick={handleGoogleSignup}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white text-black font-medium hover:bg-white/90 transition-colors disabled:opacity-50"
+            >
               <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
               Sign up with Google
-            </button>
-            <button className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white/5 text-white font-medium border border-white/10 hover:bg-white/10 transition-colors">
-              <Github className="w-5 h-5" />
-              Sign up with GitHub
             </button>
           </div>
 
@@ -41,7 +102,7 @@ export function Signup() {
             </div>
           </div>
 
-          <form className="space-y-4">
+          <form onSubmit={handleSignup} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1.5">Full Name</label>
               <div className="relative">
@@ -50,6 +111,9 @@ export function Signup() {
                 </div>
                 <input
                   type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
                   className="block w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
                   placeholder="John Doe"
                 />
@@ -64,6 +128,9 @@ export function Signup() {
                 </div>
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                   className="block w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
                   placeholder="you@example.com"
                 />
@@ -78,6 +145,10 @@ export function Signup() {
                 </div>
                 <input
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
                   className="block w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
                   placeholder="••••••••"
                 />
@@ -85,11 +156,18 @@ export function Signup() {
             </div>
 
             <button
-              type="button"
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-primary text-white font-semibold hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-all duration-300 group mt-6"
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-primary text-white font-semibold hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-all duration-300 group mt-6 disabled:opacity-50"
             >
-              Create Account
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  Create Account
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
             </button>
           </form>
 

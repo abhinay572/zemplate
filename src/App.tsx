@@ -26,6 +26,11 @@ import { Category } from "./pages/Category";
 import { Legal } from "./pages/Legal";
 import { Comparison } from "./pages/Comparison";
 import { FreeTool } from "./pages/FreeTool";
+import { SuperAdmin } from "./pages/SuperAdmin";
+import { SuperAdminTemplates } from "./pages/SuperAdminTemplates";
+import { SuperAdminModels } from "./pages/SuperAdminModels";
+import { SuperAdminUsers } from "./pages/SuperAdminUsers";
+import { SuperAdminAnalytics } from "./pages/SuperAdminAnalytics";
 import { BottomNav } from "./components/layout/BottomNav";
 
 function AnimatedRoutes() {
@@ -63,6 +68,12 @@ function AnimatedRoutes() {
           <Route path="/terms" element={<Legal />} />
           <Route path="/vs/:competitor" element={<Comparison />} />
           <Route path="/free-tools/:tool" element={<FreeTool />} />
+          {/* Super Admin Routes */}
+          <Route path="/super-admin" element={<SuperAdmin />} />
+          <Route path="/super-admin/templates" element={<SuperAdminTemplates />} />
+          <Route path="/super-admin/models" element={<SuperAdminModels />} />
+          <Route path="/super-admin/users" element={<SuperAdminUsers />} />
+          <Route path="/super-admin/analytics" element={<SuperAdminAnalytics />} />
         </Routes>
       </motion.div>
     </AnimatePresence>

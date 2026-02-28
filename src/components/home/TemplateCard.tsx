@@ -1,4 +1,4 @@
-import { Heart, Play, Download, Maximize2, Zap } from "lucide-react";
+import { Heart, Play, Download, Maximize2, Zap, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 
@@ -21,13 +21,20 @@ export function TemplateCard({ id, title, author, image, likes, uses, aspectRati
     <div className="group relative rounded-2xl overflow-hidden bg-surface border border-surface-border hover:border-primary/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(124,58,237,0.15)] hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] focus-within:ring-2 focus-within:ring-primary">
       {/* Image Container */}
       <div className="relative w-full overflow-hidden bg-white/5 aspect-[3/4]">
-        <img
-          src={image}
-          alt={title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-          referrerPolicy="no-referrer"
-          loading="lazy"
-        />
+        {image ? (
+          <img
+            src={image}
+            alt={title}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            referrerPolicy="no-referrer"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-surface to-secondary/10">
+            <ImageIcon className="w-10 h-10 text-primary/30 mb-2" />
+            <span className="text-xs text-white/20 font-medium">No preview</span>
+          </div>
+        )}
         
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all duration-300 flex flex-col justify-between p-4">
@@ -64,9 +71,15 @@ export function TemplateCard({ id, title, author, image, likes, uses, aspectRati
 
         <div className="flex items-center justify-between mt-3 min-w-0">
           <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
-            <img src={author.avatar} alt={author.name} className="w-5 h-5 rounded-full object-cover border border-surface-border shrink-0" referrerPolicy="no-referrer" loading="lazy" />
+            {author.avatar ? (
+              <img src={author.avatar} alt={author.name} className="w-5 h-5 rounded-full object-cover border border-surface-border shrink-0" referrerPolicy="no-referrer" loading="lazy" />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-primary/20 border border-surface-border shrink-0 flex items-center justify-center">
+                <span className="text-[9px] font-bold text-primary">{author.name?.charAt(0) || "Z"}</span>
+              </div>
+            )}
             <span className="text-xs font-medium text-foreground-muted hover:text-foreground cursor-pointer transition-colors truncate">
-              {author.name}
+              {author.name || "Zemplate"}
             </span>
           </div>
 

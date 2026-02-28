@@ -12,9 +12,9 @@ function toCardProps(t: PublicTemplate) {
     title: t.title,
     author: {
       name: t.authorName || "Zemplate",
-      avatar: t.authorAvatar || "https://picsum.photos/seed/z/100/100",
+      avatar: t.authorAvatar || "",
     },
-    image: t.imageUrl,
+    image: t.imageUrl || "",
     likes: t.likesCount || 0,
     uses: t.usageCount || 0,
     aspectRatio: (

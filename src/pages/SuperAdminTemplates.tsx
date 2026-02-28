@@ -309,7 +309,7 @@ export function SuperAdminTemplates() {
           tags: seed.tags,
           imageUrl,
           status: "published",
-          authorName: "Admin",
+          authorName: "Zemplate",
           authorAvatar: "",
         });
 
@@ -382,7 +382,7 @@ export function SuperAdminTemplates() {
           tags: item.tags || [],
           imageUrl,
           status: "published",
-          authorName: "Admin",
+          authorName: "Zemplate",
           authorAvatar: "",
         });
 
@@ -421,7 +421,7 @@ export function SuperAdminTemplates() {
           tags: s.tags,
           imageUrl: "",
           status: "published" as const,
-          authorName: "Admin",
+          authorName: "Zemplate",
           authorAvatar: "",
         }))
       );

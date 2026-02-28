@@ -17,6 +17,8 @@ import {
   AlertCircle,
   Loader2,
   FileJson,
+  Square,
+  PlusCircle,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -26,13 +28,15 @@ import { uploadTemplateImage, uploadBase64Image } from "@/lib/storage";
 import { generateWithGemini } from "@/lib/providers/gemini-image";
 import { SEED_TEMPLATES, type SeedTemplate } from "@/lib/seed-templates";
 
-const CATEGORIES = [
-  "All", "Devotional & Spiritual", "Seasonal Greetings & DP", "Social Media & Dating",
+const DEFAULT_CATEGORIES = [
+  "Devotional & Spiritual", "Seasonal Greetings & DP", "Social Media & Dating",
   "Lifestyle & Misc", "Viral Trends", "UGC & Marketing",
   "Sci-Fi & Fantasy", "Product Photography", "Portrait", "Instagram",
   "Art & Illustration", "YouTube Thumbnails", "Food & Restaurant", "Real Estate",
   "Fitness", "Logo", "Business",
 ];
+
+const STORAGE_KEY_CATEGORIES = "zemplate_custom_categories";
 
 interface UploadFormData {
   title: string;
@@ -68,6 +72,28 @@ export function SuperAdminTemplates() {
     title: "", category: "", hiddenPrompt: "", model: "nano-banana",
     creditCost: 1, aspectRatio: "1:1", tags: "",
   });
+
+  // Custom categories
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_CATEGORIES);
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+
+  const CATEGORIES = ["All", ...DEFAULT_CATEGORIES, ...customCategories];
+
+  const addCustomCategory = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed || CATEGORIES.includes(trimmed)) return;
+    const updated = [...customCategories, trimmed];
+    setCustomCategories(updated);
+    localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(updated));
+    setNewCategoryName("");
+    setShowAddCategory(false);
+  };
 
   // Bulk upload state
   const [bulkTab, setBulkTab] = useState<"seed" | "json">("seed");
@@ -240,6 +266,8 @@ export function SuperAdminTemplates() {
 
     abortRef.current = false;
     setBulkProgress({ total: selected.length, completed: 0, current: selected[0].title, failed: [], status: "generating" });
+    // Close modal — upload continues in background
+    setShowBulkModal(false);
 
     const failed: string[] = [];
     let completed = 0;
@@ -253,7 +281,6 @@ export function SuperAdminTemplates() {
         let imageUrl = "";
 
         if (generateImages) {
-          // Generate preview image using Gemini (nano-banana)
           const shortPrompt = `${seed.hiddenPrompt.slice(0, 200)}, high quality preview thumbnail`;
           try {
             const results = await generateWithGemini(shortPrompt, { model: "gemini-2.0-flash-exp" });
@@ -291,7 +318,7 @@ export function SuperAdminTemplates() {
       }
     }
 
-    setBulkProgress((p) => ({ ...p, status: "done", failed }));
+    setBulkProgress((p) => ({ ...p, status: abortRef.current ? "done" : "done", failed }));
 
     // Refresh template list
     const { templates: updated } = await getAdminTemplates();
@@ -313,6 +340,8 @@ export function SuperAdminTemplates() {
 
     abortRef.current = false;
     setBulkProgress({ total: parsed.length, completed: 0, current: parsed[0]?.title || "", failed: [], status: "generating" });
+    // Close modal — upload continues in background
+    setShowBulkModal(false);
 
     const failed: string[] = [];
     let completed = 0;
@@ -455,12 +484,31 @@ export function SuperAdminTemplates() {
           </div>
 
           {/* Category Tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide items-center">
             {CATEGORIES.map((cat) => (
               <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${activeCategory === cat ? "bg-primary text-white" : "bg-surface border border-white/10 text-white/60 hover:text-white hover:border-white/20"}`}>
                 {cat}
               </button>
             ))}
+            {showAddCategory ? (
+              <div className="flex items-center gap-2 shrink-0">
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Category name"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") addCustomCategory(newCategoryName); if (e.key === "Escape") setShowAddCategory(false); }}
+                  className="bg-surface border border-primary/40 rounded-full px-4 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none w-40"
+                />
+                <button onClick={() => addCustomCategory(newCategoryName)} className="p-1.5 rounded-full bg-primary text-white hover:bg-primary/90 transition-all"><CheckCircle className="w-4 h-4" /></button>
+                <button onClick={() => { setShowAddCategory(false); setNewCategoryName(""); }} className="p-1.5 rounded-full bg-white/10 text-white/60 hover:text-white transition-all"><X className="w-4 h-4" /></button>
+              </div>
+            ) : (
+              <button onClick={() => setShowAddCategory(true)} className="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-surface border border-dashed border-white/20 text-white/40 hover:text-white hover:border-primary/40 flex items-center gap-1.5">
+                <PlusCircle className="w-3.5 h-3.5" /> Add Category
+              </button>
+            )}
           </div>
 
           {/* Templates Table */}
@@ -580,9 +628,17 @@ export function SuperAdminTemplates() {
                 <div>
                   <label className="text-sm font-medium text-white/80 block mb-2">Category</label>
                   <div className="relative">
-                    <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 text-white appearance-none focus:outline-none focus:border-primary transition-colors">
+                    <select value={formData.category} onChange={(e) => {
+                      if (e.target.value === "__add_new__") {
+                        const name = prompt("Enter new category name:");
+                        if (name) { addCustomCategory(name); setFormData({ ...formData, category: name.trim() }); }
+                      } else {
+                        setFormData({ ...formData, category: e.target.value });
+                      }
+                    }} className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 text-white appearance-none focus:outline-none focus:border-primary transition-colors">
                       <option value="">Select a category</option>
                       {CATEGORIES.filter((c) => c !== "All").map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
+                      <option value="__add_new__">+ Add New Category...</option>
                     </select>
                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
                   </div>
@@ -603,7 +659,6 @@ export function SuperAdminTemplates() {
                         <option value="nano-banana">Nano Banana (Fast)</option>
                         <option value="nano-banana-pro">Nano Banana Pro (4K)</option>
                         <option value="nano-banana-2">Nano Banana 2 (New)</option>
-                        <option value="imagen-3">Imagen 3 (Standard)</option>
                       </select>
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
                     </div>
@@ -654,10 +709,65 @@ export function SuperAdminTemplates() {
         )}
       </AnimatePresence>
 
+      {/* Floating Background Progress Bar */}
+      <AnimatePresence>
+        {(bulkProgress.status === "generating" || bulkProgress.status === "done" || bulkProgress.status === "error") && !showBulkModal && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg"
+          >
+            <div className={`bg-surface border rounded-2xl p-4 shadow-2xl shadow-black/40 ${bulkProgress.status === "error" ? "border-red-500/30" : bulkProgress.status === "done" ? "border-emerald-500/30" : "border-primary/30"}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-white font-medium flex items-center gap-2">
+                  {bulkProgress.status === "generating" && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+                  {bulkProgress.status === "done" && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                  {bulkProgress.status === "error" && <AlertCircle className="w-4 h-4 text-red-400" />}
+                  {bulkProgress.status === "generating"
+                    ? `Uploading: ${bulkProgress.current}`
+                    : bulkProgress.status === "done"
+                    ? `Done! ${bulkProgress.completed} templates uploaded`
+                    : "Upload error"}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white/50">{bulkProgress.completed}/{bulkProgress.total}</span>
+                  {bulkProgress.status === "generating" && (
+                    <button
+                      onClick={() => { abortRef.current = true; }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-medium transition-all"
+                    >
+                      <Square className="w-3 h-3" /> Stop
+                    </button>
+                  )}
+                  {(bulkProgress.status === "done" || bulkProgress.status === "error") && (
+                    <button
+                      onClick={() => setBulkProgress({ total: 0, completed: 0, current: "", failed: [], status: "idle" })}
+                      className="p-1 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="w-full bg-white/10 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all duration-300 ${bulkProgress.status === "error" ? "bg-red-500" : "bg-emerald-500"}`}
+                  style={{ width: `${bulkProgress.total > 0 ? (bulkProgress.completed / bulkProgress.total) * 100 : 0}%` }}
+                />
+              </div>
+              {bulkProgress.failed.length > 0 && (
+                <p className="text-red-400 text-xs mt-2">Failed: {bulkProgress.failed.join(", ")}</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Bulk Upload Modal */}
       <AnimatePresence>
         {showBulkModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { if (bulkProgress.status !== "generating") setShowBulkModal(false); }}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowBulkModal(false)}>
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} onClick={(e) => e.stopPropagation()} className="bg-surface border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
 
               {/* Header */}
@@ -666,38 +776,19 @@ export function SuperAdminTemplates() {
                   <h2 className="text-xl font-bold text-white flex items-center gap-2">
                     <Package className="w-5 h-5 text-emerald-400" /> Bulk Upload Templates
                   </h2>
-                  <p className="text-white/50 text-sm mt-1">Add multiple templates at once. Images auto-generated via Gemini Imagen API.</p>
+                  <p className="text-white/50 text-sm mt-1">Add multiple templates at once. Images auto-generated via Gemini nano-banana.</p>
                 </div>
-                <button onClick={() => { if (bulkProgress.status !== "generating") setShowBulkModal(false); }} className="p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors">
+                <button onClick={() => setShowBulkModal(false)} className="p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Progress Bar (when generating) */}
-              {bulkProgress.status !== "idle" && (
+              {/* Progress info shown in-modal only if still open during generation */}
+              {bulkProgress.status === "generating" && (
                 <div className="px-6 pt-4">
-                  <div className="bg-background rounded-2xl p-4 border border-white/10">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80 flex items-center gap-2">
-                        {bulkProgress.status === "generating" && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
-                        {bulkProgress.status === "done" && <CheckCircle className="w-4 h-4 text-emerald-400" />}
-                        {bulkProgress.status === "error" && <AlertCircle className="w-4 h-4 text-red-400" />}
-                        {bulkProgress.status === "generating" ? `Generating: ${bulkProgress.current}` : bulkProgress.status === "done" ? "All done!" : "Error occurred"}
-                      </span>
-                      <span className="text-sm text-white/60">{bulkProgress.completed}/{bulkProgress.total}</span>
-                    </div>
-                    <div className="w-full bg-white/10 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all duration-300 ${bulkProgress.status === "error" ? "bg-red-500" : "bg-emerald-500"}`}
-                        style={{ width: `${bulkProgress.total > 0 ? (bulkProgress.completed / bulkProgress.total) * 100 : 0}%` }}
-                      />
-                    </div>
-                    {bulkProgress.failed.length > 0 && (
-                      <p className="text-red-400 text-xs mt-2">Failed: {bulkProgress.failed.join(", ")}</p>
-                    )}
-                    {bulkProgress.status === "generating" && (
-                      <button onClick={() => { abortRef.current = true; }} className="mt-2 text-xs text-red-400 hover:text-red-300">Stop</button>
-                    )}
+                  <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm text-emerald-400 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Upload running in background. You can close this modal — progress will show at the bottom of the screen.
                   </div>
                 </div>
               )}
@@ -734,7 +825,7 @@ export function SuperAdminTemplates() {
                         </div>
                         <div>
                           <span className="text-sm text-white font-medium">Auto-generate preview images</span>
-                          <p className="text-xs text-white/40">{generateImages ? "Imagen API will generate a preview for each template (slower, uses API quota)" : "Templates created without images (fast, add images later)"}</p>
+                          <p className="text-xs text-white/40">{generateImages ? "Gemini will generate a preview for each template (slower, uses API quota)" : "Templates created without images (fast, add images later)"}</p>
                         </div>
                       </label>
                     </div>
@@ -796,7 +887,7 @@ export function SuperAdminTemplates() {
                         </div>
                         <div>
                           <span className="text-sm text-white font-medium">Auto-generate preview images</span>
-                          <p className="text-xs text-white/40">{generateImages ? "Imagen API will generate a preview for each template" : "Templates created without images"}</p>
+                          <p className="text-xs text-white/40">{generateImages ? "Gemini will generate a preview for each template" : "Templates created without images"}</p>
                         </div>
                       </label>
                     </div>
@@ -805,14 +896,14 @@ export function SuperAdminTemplates() {
                       <label className="text-sm font-medium text-white/80 block mb-2">Paste JSON Array</label>
                       <textarea
                         rows={12}
-                        placeholder={`[\n  {\n    "title": "My Template",\n    "category": "Portrait",\n    "hiddenPrompt": "A detailed prompt...",\n    "model": "imagen-3",\n    "creditCost": 1,\n    "aspectRatio": "1:1",\n    "tags": ["tag1", "tag2"]\n  }\n]`}
+                        placeholder={`[\n  {\n    "title": "My Template",\n    "category": "Portrait",\n    "hiddenPrompt": "A detailed prompt...",\n    "model": "nano-banana",\n    "creditCost": 1,\n    "aspectRatio": "1:1",\n    "tags": ["tag1", "tag2"]\n  }\n]`}
                         value={jsonInput}
                         onChange={(e) => setJsonInput(e.target.value)}
                         className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-primary transition-colors resize-none font-mono text-sm"
                       />
                     </div>
                     <p className="text-xs text-white/40">
-                      Required fields: <code className="text-primary/80">title</code>, <code className="text-primary/80">category</code>, <code className="text-primary/80">hiddenPrompt</code>. Optional: model (default: imagen-3), creditCost (default: 1), aspectRatio (default: 1:1), tags.
+                      Required fields: <code className="text-primary/80">title</code>, <code className="text-primary/80">category</code>, <code className="text-primary/80">hiddenPrompt</code>. Optional: model (default: nano-banana), creditCost (default: 1), aspectRatio (default: 1:1), tags.
                     </p>
                   </div>
                 )}
@@ -820,8 +911,8 @@ export function SuperAdminTemplates() {
 
               {/* Footer */}
               <div className="p-6 border-t border-white/10 flex items-center justify-between">
-                <button onClick={() => { if (bulkProgress.status !== "generating") setShowBulkModal(false); }} className="px-5 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all text-sm font-medium">
-                  {bulkProgress.status === "done" ? "Close" : "Cancel"}
+                <button onClick={() => setShowBulkModal(false)} className="px-5 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all text-sm font-medium">
+                  Close
                 </button>
                 {bulkTab === "seed" ? (
                   <button

@@ -1,14 +1,14 @@
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { ArrowLeft, Upload, Sparkles, Zap, Image as ImageIcon, Wand2, SlidersHorizontal, CheckCircle2, Download, AlertCircle } from "lucide-react";
+import { ArrowLeft, Upload, Sparkles, Zap, Image as ImageIcon, Wand2, SlidersHorizontal, CheckCircle2, Download, AlertCircle, PenTool } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
 import { SEO } from "@/components/seo/SEO";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { useAuth } from "@/contexts/AuthContext";
-import { generateImage, removeBackground, TOOL_CONFIG, type ToolType } from "@/lib/providers/router";
+import { generateImage, removeBackground, generateProductPhoto, TOOL_CONFIG, type ToolType } from "@/lib/providers/router";
 import { uploadGeneratedImage } from "@/lib/storage";
 import { createGeneration, updateGeneration } from "@/lib/firestore/generations";
 import { deductCredits, incrementGenerations } from "@/lib/firestore/users";
@@ -44,6 +44,16 @@ const TOOLS = [
     needsUpload: true,
     needsPrompt: false,
   },
+  {
+    id: "ai-headshot",
+    toolType: "headshot" as ToolType,
+    title: "AI Headshot Generator",
+    description: "Upload a selfie and get a professional corporate headshot instantly. No prompt needed.",
+    icon: PenTool,
+    color: "from-violet-500 to-purple-500",
+    needsUpload: true,
+    needsPrompt: false,
+  },
 ];
 
 export function ToolDetail() {
@@ -62,6 +72,8 @@ export function ToolDetail() {
   const [style, setStyle] = useState("Photorealistic");
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState("");
+  const [headshotStyle, setHeadshotStyle] = useState("Corporate");
+  const [autoGenerate, setAutoGenerate] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -76,7 +88,16 @@ export function ToolDetail() {
     setPrompt("");
     setUploadedImage(null);
     setUploadedFileName("");
+    setAutoGenerate(false);
   }, [id]);
+
+  // Auto-trigger generation for headshot tool after image upload
+  useEffect(() => {
+    if (autoGenerate && uploadedImage && tool.id === "ai-headshot" && user && profile && !isGenerating) {
+      setAutoGenerate(false);
+      handleGenerate();
+    }
+  }, [autoGenerate, uploadedImage]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -87,6 +108,10 @@ export function ToolDetail() {
       const result = reader.result as string;
       const base64 = result.split(",")[1];
       setUploadedImage(base64);
+      // Auto-trigger for headshot tool
+      if (tool.id === "ai-headshot") {
+        setAutoGenerate(true);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -158,6 +183,14 @@ export function ToolDetail() {
           outputUrl = await uploadGeneratedImage(result.images[0].imageBytes, user.uid, generationId || Date.now().toString());
         } else if ("outputUrl" in result) {
           outputUrl = result.outputUrl;
+        }
+      } else if (tool.toolType === "headshot" && uploadedImage) {
+        // Headshot: use Gemini to generate a professional headshot from the selfie
+        const headshotPrompt = `Transform this casual selfie into a professional ${headshotStyle.toLowerCase()} headshot. Clean background, professional lighting, sharp focus on face, business-appropriate appearance. High quality portrait photography style.`;
+        const { editWithGemini } = await import("@/lib/providers/gemini-image");
+        const results = await editWithGemini(uploadedImage, headshotPrompt);
+        if (results.length > 0) {
+          outputUrl = await uploadGeneratedImage(results[0].imageBytes, user.uid, generationId || Date.now().toString());
         }
       }
 
@@ -330,6 +363,25 @@ export function ToolDetail() {
                 <div className="p-4 rounded-xl border border-white/10 bg-black/20 text-center">
                   <p className="text-sm text-white/60 mb-3">Upload an image to remove its background</p>
                   <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-all active:scale-95">Select Image</button>
+                </div>
+              )}
+
+              {tool.id === 'ai-headshot' && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl border border-white/10 bg-black/20 text-center hover:bg-white/5 transition-colors cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
+                    <p className="text-sm text-white/60 mb-2 group-hover:text-white/80 transition-colors">{uploadedImage ? "Selfie uploaded — processing automatically" : "Upload a selfie to generate your headshot"}</p>
+                    <button className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-all active:scale-95">{uploadedImage ? "Change Photo" : "Upload Selfie"}</button>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white/70">Headshot Style</label>
+                    <select value={headshotStyle} onChange={(e) => setHeadshotStyle(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-primary transition-colors">
+                      <option>Corporate</option>
+                      <option>Creative</option>
+                      <option>Casual Professional</option>
+                      <option>LinkedIn</option>
+                    </select>
+                  </div>
+                  <p className="text-xs text-white/40">Upload a clear selfie. AI will automatically generate a professional headshot — no prompt needed.</p>
                 </div>
               )}
 

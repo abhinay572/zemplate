@@ -5,6 +5,8 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   updateProfile,
 } from "firebase/auth";
@@ -33,6 +35,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const p = await getUserProfile(uid);
     setProfile(p);
   };
+
+  // Handle redirect result from Google sign-in (fallback when popup is blocked)
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          const referralCode = sessionStorage.getItem("zemplate_referral") || undefined;
+          sessionStorage.removeItem("zemplate_referral");
+          await handleGoogleUser(result.user, referralCode);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -78,14 +93,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await fetchProfile(result.user.uid);
   };
 
-  const loginWithGoogle = async (referralCode?: string) => {
-    const result = await signInWithPopup(auth, googleProvider);
-    const existing = await getUserProfile(result.user.uid);
+  const handleGoogleUser = async (user: User, referralCode?: string) => {
+    const existing = await getUserProfile(user.uid);
     if (!existing) {
-      await createUserProfile(result.user.uid, {
-        name: result.user.displayName || "User",
-        email: result.user.email || "",
-        avatar: result.user.photoURL || "",
+      await createUserProfile(user.uid, {
+        name: user.displayName || "User",
+        email: user.email || "",
+        avatar: user.photoURL || "",
         referredBy: referralCode || undefined,
       });
       // Award referral bonus to referrer (only for new users)
@@ -103,7 +117,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     }
-    await fetchProfile(result.user.uid);
+    await fetchProfile(user.uid);
+  };
+
+  const loginWithGoogle = async (referralCode?: string) => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      await handleGoogleUser(result.user, referralCode);
+    } catch (err: any) {
+      // If popup was blocked or closed, fall back to redirect flow
+      if (
+        err.code === "auth/popup-blocked" ||
+        err.code === "auth/popup-closed-by-user" ||
+        err.code === "auth/cancelled-popup-request"
+      ) {
+        // Store referral code for redirect callback
+        if (referralCode) {
+          sessionStorage.setItem("zemplate_referral", referralCode);
+        }
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
+      throw err;
+    }
   };
 
   const logout = async () => {

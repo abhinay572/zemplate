@@ -1,28 +1,93 @@
 import { Link } from "react-router-dom";
-import { Twitter, Instagram, Youtube, Github, Facebook, Linkedin, Send } from "lucide-react";
+import { Twitter, Instagram, Youtube, Github, Facebook, Linkedin, Send, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { subscribeNewsletter } from "@/lib/firestore/newsletter";
+
+// Google Sheets webhook — pushes subscriber emails to a Google Sheet
+async function pushToGoogleSheet(email: string): Promise<void> {
+  const GOOGLE_SHEET_WEBHOOK_URL = import.meta.env.VITE_GOOGLE_SHEET_WEBHOOK_URL;
+  if (!GOOGLE_SHEET_WEBHOOK_URL) return; // Skip if not configured
+  try {
+    await fetch(GOOGLE_SHEET_WEBHOOK_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, subscribedAt: new Date().toISOString() }),
+    });
+  } catch {
+    // Non-blocking — don't fail if sheet push fails
+  }
+}
 
 export function Footer() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  const handleSubscribe = async () => {
+    if (!email || !email.includes("@")) {
+      setStatus("error");
+      setMessage("Please enter a valid email address.");
+      return;
+    }
+
+    setStatus("loading");
+    try {
+      await subscribeNewsletter(email);
+      await pushToGoogleSheet(email);
+      setStatus("success");
+      setMessage("You're subscribed! Check your inbox for updates.");
+      setEmail("");
+    } catch (err: any) {
+      setStatus("error");
+      setMessage("Subscription failed. Please try again.");
+    }
+  };
+
   return (
     <footer className="w-full bg-surface border-t border-white/5 pt-16 pb-8 mt-auto">
       <div className="max-w-[1600px] mx-auto px-4 md:px-6">
-        
+
         {/* Newsletter Section */}
         <div className="bg-gradient-to-r from-primary/20 to-secondary/20 border border-white/10 rounded-3xl p-8 md:p-12 mb-16 flex flex-col md:flex-row items-center justify-between gap-8">
           <div>
             <h3 className="text-2xl font-display font-bold text-white mb-2">Get weekly AI template drops</h3>
             <p className="text-white/70">Join 50K+ creators getting the best AI templates delivered to their inbox.</p>
           </div>
-          <div className="w-full md:w-auto flex-1 max-w-md flex items-center gap-2">
-            <div className="relative flex-1">
-              <input 
-                type="email" 
-                placeholder="Enter your email" 
-                className="w-full bg-black/40 border border-white/10 rounded-full py-3 pl-4 pr-12 text-white placeholder:text-white/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              />
+          <div className="w-full md:w-auto flex-1 max-w-md">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); if (status !== "idle") setStatus("idle"); }}
+                  onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
+                  placeholder="Enter your email"
+                  className="w-full bg-black/40 border border-white/10 rounded-full py-3 pl-4 pr-12 text-white placeholder:text-white/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <button
+                onClick={handleSubscribe}
+                disabled={status === "loading"}
+                className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-medium transition-colors flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+              >
+                {status === "loading" ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>Subscribe <Send className="w-4 h-4" /></>
+                )}
+              </button>
             </div>
-            <button className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-medium transition-colors flex items-center gap-2 whitespace-nowrap">
-              Subscribe <Send className="w-4 h-4" />
-            </button>
+            {status === "success" && (
+              <div className="flex items-center gap-2 mt-3 text-emerald-400 text-sm">
+                <CheckCircle2 className="w-4 h-4 shrink-0" /> {message}
+              </div>
+            )}
+            {status === "error" && (
+              <div className="flex items-center gap-2 mt-3 text-red-400 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" /> {message}
+              </div>
+            )}
           </div>
         </div>
 

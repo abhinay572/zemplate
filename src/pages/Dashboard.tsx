@@ -32,8 +32,8 @@ export function Dashboard() {
         <div className="max-w-5xl mx-auto space-y-12">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
-              <h1 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Welcome back, {firstName}!</h1>
-              <p className="text-white/60">Here's what's happening with your account today.</p>
+              <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">Welcome back, {firstName}!</h1>
+              <p className="text-foreground-muted">Here's what's happening with your account today.</p>
             </motion.div>
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }}
               className="bg-surface border border-white/10 rounded-2xl p-6 flex items-center gap-6 shadow-lg hover:shadow-[0_0_30px_rgba(124,58,237,0.15)] transition-shadow cursor-pointer group">
@@ -64,8 +64,8 @@ export function Dashboard() {
                   <div className={`w-12 h-12 rounded-full ${card.gradient ? "bg-primary/20" : "bg-white/5"} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                     <card.icon className={`w-6 h-6 ${card.gradient ? "text-primary" : "text-white/70"}`} />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{card.title}</h3>
-                  <p className="text-white/60 text-sm">{card.desc}</p>
+                  <h3 className="text-lg font-bold text-foreground mb-2">{card.title}</h3>
+                  <p className="text-foreground-muted text-sm">{card.desc}</p>
                 </Link>
               </motion.div>
             ))}
@@ -73,7 +73,7 @@ export function Dashboard() {
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-display font-bold text-white">Recent Generations</h2>
+              <h2 className="text-2xl font-display font-bold text-foreground">Recent Generations</h2>
               <Link to="/dashboard/generations" className="text-sm font-medium text-white/60 hover:text-white transition-colors flex items-center gap-1 group">View All <span className="group-hover:translate-x-1 transition-transform">→</span></Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

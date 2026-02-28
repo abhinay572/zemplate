@@ -18,7 +18,7 @@ interface TemplateCardProps {
 
 export function TemplateCard({ id, title, author, image, likes, uses, aspectRatio = "portrait", cost = 1 }: TemplateCardProps) {
   return (
-    <div className="group relative rounded-2xl overflow-hidden bg-surface border border-white/5 hover:border-white/20 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(124,58,237,0.15)] hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] focus-within:ring-2 focus-within:ring-primary">
+    <div className="group relative rounded-2xl overflow-hidden bg-surface border border-surface-border hover:border-primary/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(124,58,237,0.15)] hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] focus-within:ring-2 focus-within:ring-primary">
       {/* Image Container */}
       <div className={cn(
         "relative w-full overflow-hidden bg-white/5",
@@ -61,19 +61,19 @@ export function TemplateCard({ id, title, author, image, likes, uses, aspectRati
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-display font-semibold text-white/90 text-sm md:text-base line-clamp-1 mb-2 group-hover:text-primary transition-colors">
+        <h3 className="font-display font-semibold text-foreground text-sm md:text-base line-clamp-1 mb-2 group-hover:text-primary transition-colors">
           {title}
         </h3>
-        
-        <div className="flex items-center justify-between mt-3">
-          <div className="flex items-center gap-2">
-            <img src={author.avatar} alt={author.name} className="w-5 h-5 rounded-full object-cover border border-white/10" referrerPolicy="no-referrer" loading="lazy" />
-            <span className="text-xs font-medium text-white/60 hover:text-white/90 cursor-pointer transition-colors">
+
+        <div className="flex items-center justify-between mt-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
+            <img src={author.avatar} alt={author.name} className="w-5 h-5 rounded-full object-cover border border-surface-border shrink-0" referrerPolicy="no-referrer" loading="lazy" />
+            <span className="text-xs font-medium text-foreground-muted hover:text-foreground cursor-pointer transition-colors truncate">
               {author.name}
             </span>
           </div>
-          
-          <div className="flex items-center gap-3 text-xs font-mono text-white/40">
+
+          <div className="flex items-center gap-3 text-xs font-mono text-foreground-muted shrink-0">
             <div className="flex items-center gap-1" aria-label={`${likes} likes`}>
               <Heart className="w-3 h-3 group-hover:text-pink-500/50 transition-colors" />
               {likes >= 1000 ? `${(likes / 1000).toFixed(1)}k` : likes}

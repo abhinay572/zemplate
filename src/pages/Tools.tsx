@@ -61,10 +61,10 @@ export function Tools() {
           ]} />
         </div>
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
+          <h1 className="text-4xl md:text-5xl font-display font-bold text-foreground mb-6">
             The Ultimate AI Toolkit
           </h1>
-          <p className="text-white/60 text-lg md:text-xl">
+          <p className="text-foreground-muted text-lg md:text-xl">
             Everything you need to create, edit, and scale your content. Powered by industry-leading AI models.
           </p>
         </div>
@@ -84,7 +84,7 @@ export function Tools() {
               >
                 <Link
                   to={`/tools/${tool.id}`}
-                  className="group relative bg-surface border border-white/5 hover:border-white/20 rounded-3xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_8px_30px_rgba(124,58,237,0.15)] overflow-hidden flex flex-col h-full hover:scale-[1.02] active:scale-[0.98]"
+                  className="group relative bg-surface border border-surface-border hover:border-primary/30 rounded-3xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_8px_30px_rgba(124,58,237,0.15)] overflow-hidden flex flex-col h-full hover:scale-[1.02] active:scale-[0.98]"
                 >
                   {/* Background Glow */}
                   <div className={cn(
@@ -106,10 +106,10 @@ export function Tools() {
                       </div>
                     </div>
 
-                    <h3 className="text-xl font-display font-semibold text-white mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/70 transition-all">
+                    <h3 className="text-xl font-display font-semibold text-foreground mb-2 transition-all">
                       {tool.name}
                     </h3>
-                    <p className="text-white/60 text-sm flex-1 mb-6 group-hover:text-white/80 transition-colors">
+                    <p className="text-foreground-muted text-sm flex-1 mb-6 transition-colors">
                       {tool.description}
                     </p>
 

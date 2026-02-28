@@ -69,8 +69,8 @@ export function Signup() {
               Z
             </div>
           </Link>
-          <h1 className="text-3xl font-display font-bold text-white mb-2">Create an account</h1>
-          <p className="text-white/60">Join Zemplate.ai and get 5 free credits</p>
+          <h1 className="text-3xl font-display font-bold text-foreground mb-2">Create an account</h1>
+          <p className="text-foreground-muted">Join Zemplate.ai and get 5 free credits</p>
         </div>
 
         <div className="glass-panel rounded-3xl p-8">

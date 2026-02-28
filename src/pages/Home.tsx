@@ -56,13 +56,13 @@ export function Home() {
             <div className="w-[800px] h-[800px] bg-gradient-primary rounded-full blur-[120px] mix-blend-screen"></div>
           </div>
           <div className="relative z-10">
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold text-white tracking-tight mb-6">
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold text-foreground tracking-tight mb-6">
               Create Stunning AI Images<br className="hidden md:block" />
               <span className="text-transparent bg-clip-text bg-gradient-primary">
                 In One Click
               </span>
             </h1>
-            <p className="text-xl md:text-2xl text-white/70 max-w-3xl mx-auto mb-10 font-medium">
+            <p className="text-xl md:text-2xl text-foreground-muted max-w-3xl mx-auto mb-10 font-medium">
               <TypewriterText text="No Prompting Skills Needed. Just select a template and generate." />
             </p>
           </div>

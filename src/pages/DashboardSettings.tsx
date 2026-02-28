@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Save } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { SEO } from "@/components/seo/SEO";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateUserProfile } from "@/lib/firestore/users";
@@ -15,6 +15,14 @@ export function DashboardSettings() {
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+  // Sync form state when profile loads (e.g., after signup/login)
+  useEffect(() => {
+    if (profile) {
+      setName((prev) => prev || profile.name || "");
+      setBio((prev) => prev || profile.bio || "");
+    }
+  }, [profile]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,8 +63,8 @@ export function DashboardSettings() {
       <DashboardLayout>
         <div className="max-w-4xl mx-auto space-y-8">
           <div>
-            <h1 className="text-3xl font-display font-bold text-white mb-2">Profile Settings</h1>
-            <p className="text-white/60">Manage your account details and preferences.</p>
+            <h1 className="text-3xl font-display font-bold text-foreground mb-2">Profile Settings</h1>
+            <p className="text-foreground-muted">Manage your account details and preferences.</p>
           </div>
 
           <div className="bg-surface border border-white/10 rounded-3xl p-6 md:p-8 space-y-8">

@@ -42,21 +42,30 @@ const SkeletonCard = ({ height }: { height: string }) => (
 );
 
 export function TemplateGrid() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [trending, setTrending] = useState<PublicTemplate[]>([]);
   const [regular, setRegular] = useState<PublicTemplate[]>([]);
 
   useEffect(() => {
-    Promise.all([
-      getTrendingTemplates(4),
-      getPublicTemplates({ limitCount: 20 }),
+    // Show mock data immediately, then replace with real Firestore data when ready
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), 5000)
+    );
+
+    Promise.race([
+      Promise.all([
+        getTrendingTemplates(4),
+        getPublicTemplates({ limitCount: 20 }),
+      ]),
+      timeout,
     ])
       .then(([trendingResult, publicResult]) => {
-        setTrending(trendingResult);
-        setRegular(publicResult.templates);
+        if (trendingResult.length > 0) setTrending(trendingResult);
+        if (publicResult.templates.length > 0) setRegular(publicResult.templates);
       })
-      .catch(console.error)
-      .finally(() => setIsLoading(false));
+      .catch(() => {
+        // Silently fall back to mock data on error or timeout
+      });
   }, []);
 
   // Fall back to mock data when Firestore is empty
@@ -76,11 +85,11 @@ export function TemplateGrid() {
             <div className="w-8 h-8 rounded-full bg-tertiary/20 flex items-center justify-center">
               <Flame className="w-5 h-5 text-tertiary" />
             </div>
-            <h2 className="text-2xl md:text-3xl font-display font-bold text-white">
+            <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground">
               Trending This Week
             </h2>
           </div>
-          <Link to="/templates/trending" className="text-sm font-medium text-white/70 hover:text-white transition-colors flex items-center gap-1 group">
+          <Link to="/templates/trending" className="text-sm font-medium text-foreground-muted hover:text-foreground transition-colors flex items-center gap-1 group">
             See All
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
@@ -100,9 +109,9 @@ export function TemplateGrid() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
                 key={template.id}
-                className="w-[280px] md:w-[320px] shrink-0 snap-start relative"
+                className="w-[280px] md:w-[320px] shrink-0 snap-start relative pt-2 pr-2"
               >
-                <div className="absolute -top-3 -right-3 z-10 bg-surface border border-white/10 text-emerald-400 text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
+                <div className="absolute top-0 right-0 z-10 bg-surface border border-surface-border text-emerald-400 text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
                   ↑ 340%
                 </div>
                 <TemplateCard {...template} />
@@ -114,7 +123,7 @@ export function TemplateGrid() {
 
       {/* Main Grid */}
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl md:text-3xl font-display font-bold text-white">
+        <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground">
           Discover Templates
         </h2>
       </div>
@@ -145,7 +154,7 @@ export function TemplateGrid() {
       {/* Load More */}
       {!isLoading && (
         <div className="mt-16 flex justify-center">
-          <button className="px-8 py-3 rounded-full bg-surface border border-white/10 text-white/90 font-medium hover:bg-white/5 hover:border-white/20 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95">
+          <button className="px-8 py-3 rounded-full bg-surface border border-surface-border text-foreground font-medium hover:bg-surface-hover hover:border-primary/30 transition-all duration-300 active:scale-95">
             Load More Templates
           </button>
         </div>

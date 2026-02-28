@@ -10,7 +10,9 @@
   --color-surface: #0d1117;
   --color-surface-hover: #161b22;
   --color-surface-border: #30363d;
-  
+  --color-foreground: #ffffff;
+  --color-foreground-muted: rgba(255, 255, 255, 0.6);
+
   --color-primary: #7c3aed;
   --color-secondary: #ec4899;
   --color-tertiary: #f97316;
@@ -18,7 +20,7 @@
 
 @layer base {
   body {
-    @apply bg-background text-white font-sans antialiased selection:bg-primary/30;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/30;
   }
 }
 
@@ -30,7 +32,7 @@
     @apply bg-gradient-to-r from-primary via-secondary to-tertiary;
   }
   .glass-panel {
-    @apply bg-surface/80 backdrop-blur-md border border-white/10 shadow-xl;
+    @apply bg-surface/80 backdrop-blur-md border border-surface-border shadow-xl;
   }
   .hide-scrollbar::-webkit-scrollbar {
     display: none;

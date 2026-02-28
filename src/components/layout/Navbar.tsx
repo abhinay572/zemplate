@@ -20,25 +20,30 @@ export function Navbar() {
   const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
+    const root = document.documentElement;
     if (isDark) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.style.setProperty('--color-background', '#0a0a0f');
-      document.documentElement.style.setProperty('--color-surface', '#0d1117');
-      document.documentElement.style.setProperty('--color-surface-hover', '#161b22');
-      document.documentElement.style.setProperty('--color-surface-border', '#30363d');
-      document.body.style.color = 'white';
+      root.classList.add('dark');
+      root.style.setProperty('--color-background', '#0a0a0f');
+      root.style.setProperty('--color-surface', '#0d1117');
+      root.style.setProperty('--color-surface-hover', '#161b22');
+      root.style.setProperty('--color-surface-border', '#30363d');
+      root.style.setProperty('--color-foreground', '#ffffff');
+      root.style.setProperty('--color-foreground-muted', 'rgba(255, 255, 255, 0.6)');
+      document.body.style.color = '#ffffff';
     } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.style.setProperty('--color-background', '#f8fafc');
-      document.documentElement.style.setProperty('--color-surface', '#ffffff');
-      document.documentElement.style.setProperty('--color-surface-hover', '#f1f5f9');
-      document.documentElement.style.setProperty('--color-surface-border', '#e2e8f0');
+      root.classList.remove('dark');
+      root.style.setProperty('--color-background', '#f8fafc');
+      root.style.setProperty('--color-surface', '#ffffff');
+      root.style.setProperty('--color-surface-hover', '#f1f5f9');
+      root.style.setProperty('--color-surface-border', '#e2e8f0');
+      root.style.setProperty('--color-foreground', '#0f172a');
+      root.style.setProperty('--color-foreground-muted', 'rgba(15, 23, 42, 0.6)');
       document.body.style.color = '#0f172a';
     }
   }, [isDark]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 h-16">
+    <header className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-surface-border h-16">
       <div className="max-w-[1600px] mx-auto px-4 md:px-6 h-full flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
@@ -110,15 +115,15 @@ export function Navbar() {
                 </button>
 
                 {showMenu && (
-                  <div className="absolute right-0 top-12 w-56 bg-surface border border-white/10 rounded-xl shadow-xl py-2 z-50">
-                    <div className="px-4 py-2 border-b border-white/10">
-                      <p className="text-white text-sm font-medium truncate">{profile?.name}</p>
-                      <p className="text-white/40 text-xs truncate">{profile?.email}</p>
+                  <div className="absolute right-0 top-12 w-56 bg-surface border border-surface-border rounded-xl shadow-xl py-2 z-50">
+                    <div className="px-4 py-2 border-b border-surface-border">
+                      <p className="text-foreground text-sm font-medium truncate">{profile?.name}</p>
+                      <p className="text-foreground-muted text-xs truncate">{profile?.email}</p>
                     </div>
-                    <Link to="/dashboard" onClick={() => setShowMenu(false)} className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">
+                    <Link to="/dashboard" onClick={() => setShowMenu(false)} className="block px-4 py-2 text-sm text-foreground-muted hover:bg-surface-hover hover:text-foreground transition-colors">
                       Dashboard
                     </Link>
-                    <Link to="/dashboard/profile" onClick={() => setShowMenu(false)} className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">
+                    <Link to="/dashboard/profile" onClick={() => setShowMenu(false)} className="block px-4 py-2 text-sm text-foreground-muted hover:bg-surface-hover hover:text-foreground transition-colors">
                       Profile Settings
                     </Link>
                     <button

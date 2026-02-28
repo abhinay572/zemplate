@@ -75,8 +75,8 @@ export function Login() {
               Z
             </div>
           </Link>
-          <h1 className="text-3xl font-display font-bold text-white mb-2">Welcome back</h1>
-          <p className="text-white/60">Sign in to continue to Zemplate.ai</p>
+          <h1 className="text-3xl font-display font-bold text-foreground mb-2">Welcome back</h1>
+          <p className="text-foreground-muted">Sign in to continue to Zemplate.ai</p>
         </div>
 
         <div className="glass-panel rounded-3xl p-8">

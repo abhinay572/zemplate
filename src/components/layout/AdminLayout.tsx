@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Image as ImageIcon,
@@ -22,7 +22,13 @@ const ADMIN_SIDEBAR_LINKS = [
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { logout } = useAuth();
+
+  const handleSignOut = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <div className="flex-1 flex max-w-[1600px] w-full mx-auto">
@@ -66,7 +72,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             User Dashboard
           </Link>
           <button
-            onClick={() => logout()}
+            onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-red-400/10 transition-all active:scale-95"
           >
             <LogOut className="w-5 h-5" />

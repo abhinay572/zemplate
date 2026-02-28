@@ -145,6 +145,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     await signOut(auth);
     setProfile(null);
+    // Clear admin session so AdminRoute re-locks
+    sessionStorage.removeItem("admin_authenticated");
   };
 
   const refreshProfile = async () => {

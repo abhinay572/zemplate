@@ -24,6 +24,7 @@ const LOCKOUT_KEY = "admin_lockout_until";
 const SESSION_KEY = "admin_authenticated";
 
 export function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -31,6 +32,16 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return sessionStorage.getItem(SESSION_KEY) === "true";
   });
+
+  // Must be logged in first
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" replace />;
 
   // If already authenticated this session, allow access
   if (isAuthenticated) return <>{children}</>;

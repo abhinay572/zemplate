@@ -16,7 +16,7 @@ import {
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { SEO } from "@/components/seo/SEO";
-import { getAdminTemplates, createTemplate, deleteTemplate, type Template } from "@/lib/firestore/templates";
+import { getAdminTemplates, createTemplate, deleteTemplate, updateTemplate, type Template } from "@/lib/firestore/templates";
 import { uploadTemplateImage } from "@/lib/storage";
 
 const CATEGORIES = [
@@ -45,6 +45,7 @@ export function SuperAdminTemplates() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [formData, setFormData] = useState<UploadFormData>({
     title: "", category: "", hiddenPrompt: "", model: "nano-banana",
     creditCost: 1, aspectRatio: "1:1", tags: "",
@@ -82,7 +83,7 @@ export function SuperAdminTemplates() {
     try {
       let imageUrl = "";
       if (imageFile) {
-        imageUrl = await uploadTemplateImage(formData.title.toLowerCase().replace(/\s+/g, "-"), imageFile);
+        imageUrl = await uploadTemplateImage(imageFile, formData.title.toLowerCase().replace(/\s+/g, "-"));
       }
       const templateId = await createTemplate({
         title: formData.title,
@@ -120,6 +121,55 @@ export function SuperAdminTemplates() {
     }
   };
 
+  const handleEdit = (template: Template) => {
+    setEditingTemplate(template);
+    setFormData({
+      title: template.title,
+      category: template.category,
+      hiddenPrompt: template.hiddenPrompt || "",
+      model: template.model || "nano-banana",
+      creditCost: template.creditCost || 1,
+      aspectRatio: template.aspectRatio || "1:1",
+      tags: (template.tags || []).join(", "),
+    });
+    if (template.imageUrl) setPreviewImage(template.imageUrl);
+    setShowUploadModal(true);
+  };
+
+  const handleSaveEdit = async (status: "published" | "draft") => {
+    if (!editingTemplate?.id || !formData.title || !formData.hiddenPrompt || !formData.category) return;
+    setUploading(true);
+    try {
+      let imageUrl = editingTemplate.imageUrl;
+      if (imageFile) {
+        imageUrl = await uploadTemplateImage(imageFile, editingTemplate.id);
+      }
+      await updateTemplate(editingTemplate.id, {
+        title: formData.title,
+        category: formData.category,
+        hiddenPrompt: formData.hiddenPrompt,
+        model: formData.model,
+        modelSlug: formData.model,
+        creditCost: formData.creditCost,
+        aspectRatio: formData.aspectRatio,
+        tags: formData.tags.split(",").map((t) => t.trim()).filter(Boolean),
+        imageUrl,
+        status,
+      });
+      const { templates: updated } = await getAdminTemplates();
+      setTemplates(updated);
+      setShowUploadModal(false);
+      setEditingTemplate(null);
+      setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" });
+      setPreviewImage(null);
+      setImageFile(null);
+    } catch (err) {
+      console.error("Failed to update template:", err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const filteredTemplates = templates.filter((t) => {
     const matchesCategory = activeCategory === "All" || t.category === activeCategory;
     const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -140,7 +190,7 @@ export function SuperAdminTemplates() {
               <h1 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Templates</h1>
               <p className="text-white/60">Upload templates with hidden prompts. Users never see the prompt.</p>
             </div>
-            <button onClick={() => setShowUploadModal(true)} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-primary/20">
+            <button onClick={() => { setEditingTemplate(null); setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" }); setPreviewImage(null); setImageFile(null); setShowUploadModal(true); }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-primary/20">
               <Plus className="w-5 h-5" /> Upload Template
             </button>
           </div>
@@ -230,7 +280,7 @@ export function SuperAdminTemplates() {
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button className="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"><Edit3 className="w-4 h-4" /></button>
+                          <button onClick={() => handleEdit(template)} className="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"><Edit3 className="w-4 h-4" /></button>
                           <button onClick={() => handleDelete(template.id!)} className="p-2 rounded-lg hover:bg-red-400/10 text-white/50 hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </td>
@@ -252,7 +302,7 @@ export function SuperAdminTemplates() {
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} onClick={(e) => e.stopPropagation()} className="bg-surface border border-white/10 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-6 border-b border-white/10">
                 <div>
-                  <h2 className="text-xl font-bold text-white">Upload New Template</h2>
+                  <h2 className="text-xl font-bold text-white">{editingTemplate ? "Edit Template" : "Upload New Template"}</h2>
                   <p className="text-white/50 text-sm mt-1">The hidden prompt will never be exposed to users.</p>
                 </div>
                 <button onClick={() => setShowUploadModal(false)} className="p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
@@ -349,11 +399,11 @@ export function SuperAdminTemplates() {
               <div className="p-6 border-t border-white/10 flex items-center justify-between">
                 <button onClick={() => setShowUploadModal(false)} className="px-5 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all text-sm font-medium">Cancel</button>
                 <div className="flex gap-3">
-                  <button onClick={() => handlePublish("draft")} disabled={uploading} className="px-5 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all text-sm font-medium disabled:opacity-50">
+                  <button onClick={() => (editingTemplate ? handleSaveEdit("draft") : handlePublish("draft"))} disabled={uploading} className="px-5 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all text-sm font-medium disabled:opacity-50">
                     Save as Draft
                   </button>
-                  <button onClick={() => handlePublish("published")} disabled={uploading} className="px-5 py-2.5 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all text-sm font-medium shadow-lg shadow-primary/20 disabled:opacity-50">
-                    {uploading ? "Uploading..." : "Publish Template"}
+                  <button onClick={() => (editingTemplate ? handleSaveEdit("published") : handlePublish("published"))} disabled={uploading} className="px-5 py-2.5 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all text-sm font-medium shadow-lg shadow-primary/20 disabled:opacity-50">
+                    {uploading ? "Saving..." : editingTemplate ? "Save Changes" : "Publish Template"}
                   </button>
                 </div>
               </div>

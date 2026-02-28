@@ -27,7 +27,9 @@ import { generateWithImagen } from "@/lib/providers/gemini-image";
 import { SEED_TEMPLATES, type SeedTemplate } from "@/lib/seed-templates";
 
 const CATEGORIES = [
-  "All", "Sci-Fi & Fantasy", "Product Photography", "Portrait", "Instagram",
+  "All", "Devotional & Spiritual", "Seasonal Greetings & DP", "Social Media & Dating",
+  "Lifestyle & Misc", "Viral Trends", "UGC & Marketing",
+  "Sci-Fi & Fantasy", "Product Photography", "Portrait", "Instagram",
   "Art & Illustration", "YouTube Thumbnails", "Food & Restaurant", "Real Estate",
   "Fitness", "Logo", "Business",
 ];

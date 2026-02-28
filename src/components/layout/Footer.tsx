@@ -97,66 +97,66 @@ export function Footer() {
               <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center text-white font-display font-bold text-xl shadow-[0_0_15px_rgba(124,58,237,0.5)] group-hover:shadow-[0_0_25px_rgba(124,58,237,0.7)] transition-shadow">
                 Z
               </div>
-              <span className="font-display font-bold text-xl tracking-tight text-current">
+              <span className="font-display font-bold text-xl tracking-tight text-white">
                 Zemplate<span className="opacity-50">.ai</span>
               </span>
             </Link>
-            <p className="text-current/60 text-sm max-w-xs mb-6">
+            <p className="text-white/60 text-sm max-w-xs mb-6">
               Create Stunning AI Images in One Click — No Prompting Skills Needed.
             </p>
             <div className="flex flex-wrap items-center gap-4">
-              <a href="#" className="text-current/40 hover:text-current transition-colors" aria-label="Instagram">
+              <a href="#" className="text-white/40 hover:text-white transition-colors" aria-label="Instagram">
                 <Instagram className="w-5 h-5" />
               </a>
-              <a href="#" className="text-current/40 hover:text-current transition-colors" aria-label="Facebook">
+              <a href="#" className="text-white/40 hover:text-white transition-colors" aria-label="Facebook">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="text-current/40 hover:text-current transition-colors" aria-label="Twitter/X">
+              <a href="#" className="text-white/40 hover:text-white transition-colors" aria-label="Twitter/X">
                 <Twitter className="w-5 h-5" />
               </a>
-              <a href="#" className="text-current/40 hover:text-current transition-colors" aria-label="YouTube">
+              <a href="#" className="text-white/40 hover:text-white transition-colors" aria-label="YouTube">
                 <Youtube className="w-5 h-5" />
               </a>
-              <a href="#" className="text-current/40 hover:text-current transition-colors" aria-label="LinkedIn">
+              <a href="#" className="text-white/40 hover:text-white transition-colors" aria-label="LinkedIn">
                 <Linkedin className="w-5 h-5" />
               </a>
             </div>
           </div>
 
           <div>
-            <h4 className="font-semibold text-current mb-4">Product</h4>
-            <ul className="space-y-3 text-sm text-current/60">
-              <li><Link to="/" className="hover:text-current transition-colors">Templates</Link></li>
-              <li><Link to="/tools" className="hover:text-current transition-colors">AI Tools</Link></li>
-              <li><Link to="/pricing" className="hover:text-current transition-colors">Pricing</Link></li>
-              <li><Link to="/community" className="hover:text-current transition-colors">Community</Link></li>
-              <li><Link to="/blog" className="hover:text-current transition-colors">Blog</Link></li>
-              <li><a href="#" className="hover:text-current transition-colors">API (coming soon)</a></li>
+            <h4 className="font-semibold text-white mb-4">Product</h4>
+            <ul className="space-y-3 text-sm text-white/60">
+              <li><Link to="/" className="hover:text-white transition-colors">Templates</Link></li>
+              <li><Link to="/tools" className="hover:text-white transition-colors">AI Tools</Link></li>
+              <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+              <li><Link to="/community" className="hover:text-white transition-colors">Community</Link></li>
+              <li><Link to="/blog" className="hover:text-white transition-colors">Blog</Link></li>
+              <li><a href="#" className="hover:text-white transition-colors">API (coming soon)</a></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold text-current mb-4">Company</h4>
-            <ul className="space-y-3 text-sm text-current/60">
-              <li><a href="#" className="hover:text-current transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-current transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-current transition-colors">Press Kit</a></li>
-              <li><a href="mailto:hello@zemplate.ai" className="hover:text-current transition-colors">Contact</a></li>
+            <h4 className="font-semibold text-white mb-4">Company</h4>
+            <ul className="space-y-3 text-sm text-white/60">
+              <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Press Kit</a></li>
+              <li><a href="mailto:hello@zemplate.ai" className="hover:text-white transition-colors">Contact</a></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold text-current mb-4">Legal</h4>
-            <ul className="space-y-3 text-sm text-current/60">
-              <li><Link to="/privacy-policy" className="hover:text-current transition-colors">Privacy Policy</Link></li>
-              <li><Link to="/terms" className="hover:text-current transition-colors">Terms of Service</Link></li>
-              <li><Link to="/refund-policy" className="hover:text-current transition-colors">Refund Policy</Link></li>
-              <li><Link to="/cookie-policy" className="hover:text-current transition-colors">Cookie Policy</Link></li>
+            <h4 className="font-semibold text-white mb-4">Legal</h4>
+            <ul className="space-y-3 text-sm text-white/60">
+              <li><Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
+              <li><Link to="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link></li>
+              <li><Link to="/cookie-policy" className="hover:text-white transition-colors">Cookie Policy</Link></li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-current/40">
+        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-white/40">
           <p>© 2026 Zemplate.ai by VIIONR INFOTECH PVT LTD. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">

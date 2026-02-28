@@ -20,10 +20,7 @@ export function TemplateCard({ id, title, author, image, likes, uses, aspectRati
   return (
     <div className="group relative rounded-2xl overflow-hidden bg-surface border border-surface-border hover:border-primary/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(124,58,237,0.15)] hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] focus-within:ring-2 focus-within:ring-primary">
       {/* Image Container */}
-      <div className={cn(
-        "relative w-full overflow-hidden bg-white/5",
-        aspectRatio === "portrait" ? "aspect-[3/4]" : aspectRatio === "landscape" ? "aspect-[4/3]" : "aspect-square"
-      )}>
+      <div className="relative w-full overflow-hidden bg-white/5 aspect-[3/4]">
         <img
           src={image}
           alt={title}

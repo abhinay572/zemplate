@@ -28,9 +28,9 @@ function toCardProps(t: PublicTemplate) {
   };
 }
 
-const SkeletonCard = ({ height }: { height: string }) => (
+const SkeletonCard = () => (
   <div className="rounded-2xl bg-surface border border-white/5 overflow-hidden animate-pulse">
-    <div className={`w-full ${height} bg-white/5`}></div>
+    <div className="w-full aspect-[3/4] bg-white/5"></div>
     <div className="p-4 space-y-3">
       <div className="w-3/4 h-4 bg-white/10 rounded-full"></div>
       <div className="flex items-center gap-2">
@@ -99,7 +99,7 @@ export function TemplateGrid() {
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="w-[280px] md:w-[320px] shrink-0 snap-start">
-                <SkeletonCard height="h-[280px]" />
+                <SkeletonCard />
               </div>
             ))
           ) : (
@@ -128,12 +128,12 @@ export function TemplateGrid() {
         </h2>
       </div>
 
-      {/* Masonry-style Grid using CSS Columns */}
-      <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 md:gap-6 space-y-4 md:space-y-6">
+      {/* Uniform Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
         {isLoading ? (
           Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="break-inside-avoid">
-              <SkeletonCard height={i % 2 === 0 ? "h-[300px]" : "h-[200px]"} />
+            <div key={i}>
+              <SkeletonCard />
             </div>
           ))
         ) : (
@@ -143,7 +143,6 @@ export function TemplateGrid() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: i * 0.05 }}
               key={template.id}
-              className="break-inside-avoid"
             >
               <TemplateCard {...template} />
             </motion.div>

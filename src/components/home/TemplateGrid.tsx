@@ -4,6 +4,29 @@ import { Flame, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { getPublicTemplates, getTrendingTemplates, type PublicTemplate } from "@/lib/firestore/templates";
+
+function toCardProps(t: PublicTemplate) {
+  return {
+    id: t.id,
+    title: t.title,
+    author: {
+      name: t.authorName || "Zemplate",
+      avatar: t.authorAvatar || "https://picsum.photos/seed/z/100/100",
+    },
+    image: t.imageUrl,
+    likes: t.likesCount || 0,
+    uses: t.usageCount || 0,
+    aspectRatio: (
+      t.aspectRatio === "3:4" || t.aspectRatio === "9:16"
+        ? "portrait"
+        : t.aspectRatio === "4:3" || t.aspectRatio === "16:9"
+        ? "landscape"
+        : "square"
+    ) as "portrait" | "landscape" | "square",
+    cost: t.creditCost || 1,
+  };
+}
 
 const SkeletonCard = ({ height }: { height: string }) => (
   <div className="rounded-2xl bg-surface border border-white/5 overflow-hidden animate-pulse">
@@ -20,16 +43,29 @@ const SkeletonCard = ({ height }: { height: string }) => (
 
 export function TemplateGrid() {
   const [isLoading, setIsLoading] = useState(true);
-  const trendingTemplates = MOCK_TEMPLATES.slice(0, 4);
-  const regularTemplates = MOCK_TEMPLATES.slice(4);
+  const [trending, setTrending] = useState<PublicTemplate[]>([]);
+  const [regular, setRegular] = useState<PublicTemplate[]>([]);
 
   useEffect(() => {
-    // Simulate network request
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
-    return () => clearTimeout(timer);
+    Promise.all([
+      getTrendingTemplates(4),
+      getPublicTemplates({ limitCount: 20 }),
+    ])
+      .then(([trendingResult, publicResult]) => {
+        setTrending(trendingResult);
+        setRegular(publicResult.templates);
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
   }, []);
+
+  // Fall back to mock data when Firestore is empty
+  const trendingTemplates = trending.length > 0
+    ? trending.map(toCardProps)
+    : MOCK_TEMPLATES.slice(0, 4);
+  const regularTemplates = regular.length > 0
+    ? regular.map(toCardProps)
+    : MOCK_TEMPLATES.slice(4);
 
   return (
     <div className="w-full max-w-[1600px] mx-auto px-4 md:px-6 pb-24">
@@ -49,7 +85,7 @@ export function TemplateGrid() {
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
-        
+
         <div className="flex overflow-x-auto gap-4 md:gap-6 pb-6 hide-scrollbar snap-x snap-mandatory">
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
@@ -59,11 +95,11 @@ export function TemplateGrid() {
             ))
           ) : (
             trendingTemplates.map((template) => (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
-                key={template.id} 
+                key={template.id}
                 className="w-[280px] md:w-[320px] shrink-0 snap-start relative"
               >
                 <div className="absolute -top-3 -right-3 z-10 bg-surface border border-white/10 text-emerald-400 text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
@@ -82,7 +118,7 @@ export function TemplateGrid() {
           Discover Templates
         </h2>
       </div>
-      
+
       {/* Masonry-style Grid using CSS Columns */}
       <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 md:gap-6 space-y-4 md:space-y-6">
         {isLoading ? (
@@ -93,11 +129,11 @@ export function TemplateGrid() {
           ))
         ) : (
           regularTemplates.map((template, i) => (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: i * 0.05 }}
-              key={template.id} 
+              key={template.id}
               className="break-inside-avoid"
             >
               <TemplateCard {...template} />
@@ -105,7 +141,7 @@ export function TemplateGrid() {
           ))
         )}
       </div>
-      
+
       {/* Load More */}
       {!isLoading && (
         <div className="mt-16 flex justify-center">

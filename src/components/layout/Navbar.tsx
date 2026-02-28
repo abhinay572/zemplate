@@ -2,6 +2,7 @@ import { Bell, Coins, Zap, Sun, Moon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NAV_LINKS = [
   { name: "Templates", href: "/" },
@@ -13,8 +14,10 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const location = useLocation();
-  const isLoggedIn = true; // Toggle this to see auth state
+  const { user, profile, logout } = useAuth();
+  const isLoggedIn = !!user;
   const [isDark, setIsDark] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     if (isDark) {
@@ -70,7 +73,7 @@ export function Navbar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-3 sm:gap-4">
-          <button 
+          <button
             onClick={() => setIsDark(!isDark)}
             className="w-9 h-9 rounded-full bg-surface/50 border border-current/10 flex items-center justify-center text-current/70 hover:text-current hover:bg-current/10 transition-colors"
             aria-label="Toggle theme"
@@ -82,16 +85,51 @@ export function Navbar() {
             <>
               <div className="hidden sm:flex items-center gap-2 bg-surface/50 border border-current/10 rounded-full px-3 py-1.5">
                 <Coins className="w-4 h-4 text-tertiary" />
-                <span className="font-mono text-sm font-medium text-current">150</span>
+                <span className="font-mono text-sm font-medium text-current">{profile?.credits ?? 0}</span>
               </div>
-              <button className="w-9 h-9 rounded-full bg-surface/50 border border-current/10 flex items-center justify-center text-current/70 hover:text-current hover:bg-current/10 transition-colors">
+              <Link
+                to="/dashboard/notifications"
+                className="w-9 h-9 rounded-full bg-surface/50 border border-current/10 flex items-center justify-center text-current/70 hover:text-current hover:bg-current/10 transition-colors"
+              >
                 <Bell className="w-4 h-4" />
-              </button>
-              <button className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary p-[2px]">
-                <div className="w-full h-full rounded-full bg-surface border border-current/20 overflow-hidden">
-                  <img src="https://picsum.photos/seed/avatar/100/100" alt="Avatar" className="w-full h-full object-cover" />
-                </div>
-              </button>
+              </Link>
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary p-[2px]"
+                >
+                  <div className="w-full h-full rounded-full bg-surface border border-current/20 overflow-hidden">
+                    {profile?.avatar ? (
+                      <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold">
+                        {profile?.name?.charAt(0) || "U"}
+                      </div>
+                    )}
+                  </div>
+                </button>
+
+                {showMenu && (
+                  <div className="absolute right-0 top-12 w-56 bg-surface border border-white/10 rounded-xl shadow-xl py-2 z-50">
+                    <div className="px-4 py-2 border-b border-white/10">
+                      <p className="text-white text-sm font-medium truncate">{profile?.name}</p>
+                      <p className="text-white/40 text-xs truncate">{profile?.email}</p>
+                    </div>
+                    <Link to="/dashboard" onClick={() => setShowMenu(false)} className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">
+                      Dashboard
+                    </Link>
+                    <Link to="/dashboard/profile" onClick={() => setShowMenu(false)} className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">
+                      Profile Settings
+                    </Link>
+                    <button
+                      onClick={() => { logout(); setShowMenu(false); }}
+                      className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-400/5 transition-colors"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             <>

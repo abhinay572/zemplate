@@ -1,7 +1,7 @@
 import {
   doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where,
   orderBy, limit, getDocs, serverTimestamp, increment, startAfter,
-  DocumentSnapshot,
+  DocumentSnapshot, writeBatch,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -193,4 +193,48 @@ export async function getTemplateCount(): Promise<{ total: number; published: nu
     else draft++;
   });
   return { total: allSnap.size, published, draft };
+}
+
+// Bulk create templates (up to 500 per batch — Firestore limit)
+export async function createTemplateBatch(
+  templates: Array<{
+    title: string;
+    category: string;
+    hiddenPrompt: string;
+    model: string;
+    modelSlug: string;
+    creditCost: number;
+    aspectRatio: string;
+    tags: string[];
+    imageUrl: string;
+    status: "published" | "draft";
+    authorName: string;
+    authorAvatar: string;
+  }>
+): Promise<string[]> {
+  const ids: string[] = [];
+  // Firestore batch limit is 500 operations
+  const chunks = [];
+  for (let i = 0; i < templates.length; i += 450) {
+    chunks.push(templates.slice(i, i + 450));
+  }
+
+  for (const chunk of chunks) {
+    const batch = writeBatch(db);
+    for (const data of chunk) {
+      const ref = doc(collection(db, "templates"));
+      batch.set(ref, {
+        ...data,
+        slug: slugify(data.title),
+        usageCount: 0,
+        likesCount: 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      ids.push(ref.id);
+    }
+    await batch.commit();
+  }
+
+  return ids;
 }

@@ -4,7 +4,6 @@ import {
   Plus,
   Upload,
   Search,
-  Filter,
   Edit3,
   Trash2,
   Eye,
@@ -12,12 +11,20 @@ import {
   Copy,
   X,
   ChevronDown,
+  Zap,
+  Package,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  FileJson,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { SEO } from "@/components/seo/SEO";
-import { getAdminTemplates, createTemplate, deleteTemplate, updateTemplate, type Template } from "@/lib/firestore/templates";
-import { uploadTemplateImage } from "@/lib/storage";
+import { getAdminTemplates, createTemplate, createTemplateBatch, deleteTemplate, updateTemplate, type Template } from "@/lib/firestore/templates";
+import { uploadTemplateImage, uploadBase64Image } from "@/lib/storage";
+import { generateWithImagen } from "@/lib/providers/gemini-image";
+import { SEED_TEMPLATES, type SeedTemplate } from "@/lib/seed-templates";
 
 const CATEGORIES = [
   "All", "Sci-Fi & Fantasy", "Product Photography", "Portrait", "Instagram",
@@ -35,10 +42,19 @@ interface UploadFormData {
   tags: string;
 }
 
+interface BulkProgress {
+  total: number;
+  completed: number;
+  current: string;
+  failed: string[];
+  status: "idle" | "generating" | "done" | "error";
+}
+
 export function SuperAdminTemplates() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [revealedPrompts, setRevealedPrompts] = useState<Set<string>>(new Set());
@@ -50,6 +66,17 @@ export function SuperAdminTemplates() {
     title: "", category: "", hiddenPrompt: "", model: "nano-banana",
     creditCost: 1, aspectRatio: "1:1", tags: "",
   });
+
+  // Bulk upload state
+  const [bulkTab, setBulkTab] = useState<"seed" | "json">("seed");
+  const [selectedSeeds, setSelectedSeeds] = useState<Set<number>>(new Set());
+  const [seedCategoryFilter, setSeedCategoryFilter] = useState("All");
+  const [generateImages, setGenerateImages] = useState(true);
+  const [bulkProgress, setBulkProgress] = useState<BulkProgress>({
+    total: 0, completed: 0, current: "", failed: [], status: "idle",
+  });
+  const [jsonInput, setJsonInput] = useState("");
+  const abortRef = useRef(false);
 
   useEffect(() => {
     getAdminTemplates()
@@ -85,7 +112,7 @@ export function SuperAdminTemplates() {
       if (imageFile) {
         imageUrl = await uploadTemplateImage(imageFile, formData.title.toLowerCase().replace(/\s+/g, "-"));
       }
-      const templateId = await createTemplate({
+      await createTemplate({
         title: formData.title,
         category: formData.category,
         hiddenPrompt: formData.hiddenPrompt,
@@ -170,6 +197,208 @@ export function SuperAdminTemplates() {
     }
   };
 
+  // ── Bulk Upload: Seed Templates ──────────────────────────
+
+  const filteredSeeds = SEED_TEMPLATES.filter(
+    (s) => seedCategoryFilter === "All" || s.category === seedCategoryFilter
+  );
+
+  const toggleSeedSelection = (idx: number) => {
+    setSelectedSeeds((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const selectAllSeeds = () => {
+    if (selectedSeeds.size === filteredSeeds.length) {
+      // Deselect all in this filter
+      const filteredIndices = new Set(filteredSeeds.map((_, i) => SEED_TEMPLATES.indexOf(filteredSeeds[i])));
+      setSelectedSeeds((prev) => {
+        const next = new Set(prev);
+        filteredIndices.forEach((idx) => next.delete(idx));
+        return next;
+      });
+    } else {
+      // Select all in this filter
+      const filteredIndices = filteredSeeds.map((_, i) => SEED_TEMPLATES.indexOf(filteredSeeds[i]));
+      setSelectedSeeds((prev) => {
+        const next = new Set(prev);
+        filteredIndices.forEach((idx) => next.add(idx));
+        return next;
+      });
+    }
+  };
+
+  const handleBulkSeed = async () => {
+    const selected = Array.from(selectedSeeds).map((idx) => SEED_TEMPLATES[idx]);
+    if (selected.length === 0) return;
+
+    abortRef.current = false;
+    setBulkProgress({ total: selected.length, completed: 0, current: selected[0].title, failed: [], status: "generating" });
+
+    const failed: string[] = [];
+    let completed = 0;
+
+    for (const seed of selected) {
+      if (abortRef.current) break;
+
+      setBulkProgress((p) => ({ ...p, current: seed.title }));
+
+      try {
+        let imageUrl = "";
+
+        if (generateImages) {
+          // Generate preview image using Imagen API
+          const shortPrompt = `${seed.hiddenPrompt.slice(0, 200)}, high quality preview thumbnail`;
+          try {
+            const results = await generateWithImagen(shortPrompt, { aspectRatio: seed.aspectRatio });
+            if (results.length > 0 && results[0].imageBytes) {
+              const slug = seed.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+              imageUrl = await uploadBase64Image(results[0].imageBytes, `templates/${slug}/preview.png`);
+            }
+          } catch (imgErr) {
+            console.warn(`Image generation failed for "${seed.title}", uploading without image:`, imgErr);
+          }
+        }
+
+        await createTemplate({
+          title: seed.title,
+          category: seed.category,
+          hiddenPrompt: seed.hiddenPrompt,
+          model: seed.model,
+          modelSlug: seed.model,
+          creditCost: seed.creditCost,
+          aspectRatio: seed.aspectRatio,
+          tags: seed.tags,
+          imageUrl,
+          status: "published",
+          authorName: "Admin",
+          authorAvatar: "",
+        });
+
+        completed++;
+        setBulkProgress((p) => ({ ...p, completed }));
+      } catch (err) {
+        console.error(`Failed to create template "${seed.title}":`, err);
+        failed.push(seed.title);
+        completed++;
+        setBulkProgress((p) => ({ ...p, completed, failed: [...p.failed, seed.title] }));
+      }
+    }
+
+    setBulkProgress((p) => ({ ...p, status: "done", failed }));
+
+    // Refresh template list
+    const { templates: updated } = await getAdminTemplates();
+    setTemplates(updated);
+    setSelectedSeeds(new Set());
+  };
+
+  // ── Bulk Upload: JSON Import ──────────────────────────
+
+  const handleJsonImport = async () => {
+    let parsed: SeedTemplate[];
+    try {
+      parsed = JSON.parse(jsonInput);
+      if (!Array.isArray(parsed)) throw new Error("Must be an array");
+    } catch (err) {
+      alert("Invalid JSON. Must be an array of template objects. See the example format.");
+      return;
+    }
+
+    abortRef.current = false;
+    setBulkProgress({ total: parsed.length, completed: 0, current: parsed[0]?.title || "", failed: [], status: "generating" });
+
+    const failed: string[] = [];
+    let completed = 0;
+
+    for (const item of parsed) {
+      if (abortRef.current) break;
+      setBulkProgress((p) => ({ ...p, current: item.title }));
+
+      try {
+        let imageUrl = "";
+
+        if (generateImages) {
+          const shortPrompt = `${item.hiddenPrompt.slice(0, 200)}, high quality preview thumbnail`;
+          try {
+            const results = await generateWithImagen(shortPrompt, { aspectRatio: item.aspectRatio || "1:1" });
+            if (results.length > 0 && results[0].imageBytes) {
+              const slug = item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+              imageUrl = await uploadBase64Image(results[0].imageBytes, `templates/${slug}/preview.png`);
+            }
+          } catch (imgErr) {
+            console.warn(`Image generation failed for "${item.title}":`, imgErr);
+          }
+        }
+
+        await createTemplate({
+          title: item.title,
+          category: item.category,
+          hiddenPrompt: item.hiddenPrompt,
+          model: item.model || "imagen-3",
+          modelSlug: item.model || "imagen-3",
+          creditCost: item.creditCost || 1,
+          aspectRatio: item.aspectRatio || "1:1",
+          tags: item.tags || [],
+          imageUrl,
+          status: "published",
+          authorName: "Admin",
+          authorAvatar: "",
+        });
+
+        completed++;
+        setBulkProgress((p) => ({ ...p, completed }));
+      } catch (err) {
+        console.error(`Failed to create template "${item.title}":`, err);
+        failed.push(item.title);
+        completed++;
+        setBulkProgress((p) => ({ ...p, completed, failed: [...p.failed, item.title] }));
+      }
+    }
+
+    setBulkProgress((p) => ({ ...p, status: "done", failed }));
+    const { templates: updated } = await getAdminTemplates();
+    setTemplates(updated);
+  };
+
+  // ── Quick Seed (no images) ──────────────────────────
+
+  const handleQuickSeedAll = async () => {
+    if (!confirm(`This will create ${SEED_TEMPLATES.length} templates WITHOUT generating images (fast). Continue?`)) return;
+
+    setBulkProgress({ total: SEED_TEMPLATES.length, completed: 0, current: "Batch writing...", failed: [], status: "generating" });
+
+    try {
+      await createTemplateBatch(
+        SEED_TEMPLATES.map((s) => ({
+          title: s.title,
+          category: s.category,
+          hiddenPrompt: s.hiddenPrompt,
+          model: s.model,
+          modelSlug: s.model,
+          creditCost: s.creditCost,
+          aspectRatio: s.aspectRatio,
+          tags: s.tags,
+          imageUrl: "",
+          status: "published" as const,
+          authorName: "Admin",
+          authorAvatar: "",
+        }))
+      );
+
+      setBulkProgress({ total: SEED_TEMPLATES.length, completed: SEED_TEMPLATES.length, current: "Done!", failed: [], status: "done" });
+      const { templates: updated } = await getAdminTemplates();
+      setTemplates(updated);
+    } catch (err) {
+      console.error("Batch seed failed:", err);
+      setBulkProgress((p) => ({ ...p, status: "error", failed: ["Batch write failed"] }));
+    }
+  };
+
   const filteredTemplates = templates.filter((t) => {
     const matchesCategory = activeCategory === "All" || t.category === activeCategory;
     const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -190,9 +419,14 @@ export function SuperAdminTemplates() {
               <h1 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Templates</h1>
               <p className="text-white/60">Upload templates with hidden prompts. Users never see the prompt.</p>
             </div>
-            <button onClick={() => { setEditingTemplate(null); setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" }); setPreviewImage(null); setImageFile(null); setShowUploadModal(true); }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-primary/20">
-              <Plus className="w-5 h-5" /> Upload Template
-            </button>
+            <div className="flex gap-3">
+              <button onClick={() => { setShowBulkModal(true); setBulkProgress({ total: 0, completed: 0, current: "", failed: [], status: "idle" }); }} className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+                <Package className="w-5 h-5" /> Bulk Upload
+              </button>
+              <button onClick={() => { setEditingTemplate(null); setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" }); setPreviewImage(null); setImageFile(null); setShowUploadModal(true); }} className="bg-primary hover:bg-primary/90 text-white px-5 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-primary/20">
+                <Plus className="w-5 h-5" /> Upload Single
+              </button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -249,7 +483,13 @@ export function SuperAdminTemplates() {
                     <tr key={template.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          {template.imageUrl && <img src={template.imageUrl} alt={template.title} className="w-12 h-12 rounded-lg object-cover border border-white/10" referrerPolicy="no-referrer" />}
+                          {template.imageUrl ? (
+                            <img src={template.imageUrl} alt={template.title} className="w-12 h-12 rounded-lg object-cover border border-white/10" referrerPolicy="no-referrer" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                              <Package className="w-5 h-5 text-white/20" />
+                            </div>
+                          )}
                           <div>
                             <p className="text-white text-sm font-medium">{template.title}</p>
                             <p className="text-white/40 text-xs">{template.category}</p>
@@ -286,7 +526,7 @@ export function SuperAdminTemplates() {
                       </td>
                     </tr>
                   )) : (
-                    <tr><td colSpan={7} className="p-8 text-center text-white/40">No templates found. Upload your first template!</td></tr>
+                    <tr><td colSpan={7} className="p-8 text-center text-white/40">No templates found. Use Bulk Upload to seed templates!</td></tr>
                   )}
                 </tbody>
               </table>
@@ -295,7 +535,7 @@ export function SuperAdminTemplates() {
         </div>
       </AdminLayout>
 
-      {/* Upload Modal */}
+      {/* Upload Single Modal */}
       <AnimatePresence>
         {showUploadModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowUploadModal(false)}>
@@ -407,6 +647,207 @@ export function SuperAdminTemplates() {
                   </button>
                 </div>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk Upload Modal */}
+      <AnimatePresence>
+        {showBulkModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { if (bulkProgress.status !== "generating") setShowBulkModal(false); }}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} onClick={(e) => e.stopPropagation()} className="bg-surface border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-white/10">
+                <div>
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Package className="w-5 h-5 text-emerald-400" /> Bulk Upload Templates
+                  </h2>
+                  <p className="text-white/50 text-sm mt-1">Add multiple templates at once. Images auto-generated via Gemini Imagen API.</p>
+                </div>
+                <button onClick={() => { if (bulkProgress.status !== "generating") setShowBulkModal(false); }} className="p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Progress Bar (when generating) */}
+              {bulkProgress.status !== "idle" && (
+                <div className="px-6 pt-4">
+                  <div className="bg-background rounded-2xl p-4 border border-white/10">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-white/80 flex items-center gap-2">
+                        {bulkProgress.status === "generating" && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+                        {bulkProgress.status === "done" && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+                        {bulkProgress.status === "error" && <AlertCircle className="w-4 h-4 text-red-400" />}
+                        {bulkProgress.status === "generating" ? `Generating: ${bulkProgress.current}` : bulkProgress.status === "done" ? "All done!" : "Error occurred"}
+                      </span>
+                      <span className="text-sm text-white/60">{bulkProgress.completed}/{bulkProgress.total}</span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-300 ${bulkProgress.status === "error" ? "bg-red-500" : "bg-emerald-500"}`}
+                        style={{ width: `${bulkProgress.total > 0 ? (bulkProgress.completed / bulkProgress.total) * 100 : 0}%` }}
+                      />
+                    </div>
+                    {bulkProgress.failed.length > 0 && (
+                      <p className="text-red-400 text-xs mt-2">Failed: {bulkProgress.failed.join(", ")}</p>
+                    )}
+                    {bulkProgress.status === "generating" && (
+                      <button onClick={() => { abortRef.current = true; }} className="mt-2 text-xs text-red-400 hover:text-red-300">Stop</button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab Switcher */}
+              <div className="px-6 pt-4">
+                <div className="flex gap-2 bg-background rounded-xl p-1">
+                  <button onClick={() => setBulkTab("seed")} className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${bulkTab === "seed" ? "bg-primary text-white" : "text-white/60 hover:text-white"}`}>
+                    <Zap className="w-4 h-4" /> Pre-built Templates ({SEED_TEMPLATES.length})
+                  </button>
+                  <button onClick={() => setBulkTab("json")} className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${bulkTab === "json" ? "bg-primary text-white" : "text-white/60 hover:text-white"}`}>
+                    <FileJson className="w-4 h-4" /> Import JSON
+                  </button>
+                </div>
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-6">
+                {bulkTab === "seed" ? (
+                  <div className="space-y-4">
+                    {/* Quick Actions */}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button onClick={handleQuickSeedAll} disabled={bulkProgress.status === "generating"} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 disabled:opacity-50">
+                        <Zap className="w-4 h-4" /> Quick Seed All {SEED_TEMPLATES.length} (No Images)
+                      </button>
+                      <span className="text-white/40 text-xs">or select individual templates below</span>
+                    </div>
+
+                    {/* Image Generation Toggle */}
+                    <div className="flex items-center gap-3 bg-background rounded-xl px-4 py-3 border border-white/10">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <div className={`w-10 h-6 rounded-full p-0.5 transition-colors ${generateImages ? "bg-emerald-500" : "bg-white/20"}`} onClick={() => setGenerateImages(!generateImages)}>
+                          <div className={`w-5 h-5 rounded-full bg-white transition-transform ${generateImages ? "translate-x-4" : ""}`} />
+                        </div>
+                        <div>
+                          <span className="text-sm text-white font-medium">Auto-generate preview images</span>
+                          <p className="text-xs text-white/40">{generateImages ? "Imagen API will generate a preview for each template (slower, uses API quota)" : "Templates created without images (fast, add images later)"}</p>
+                        </div>
+                      </label>
+                    </div>
+
+                    {/* Category filter for seeds */}
+                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                      {CATEGORIES.map((cat) => (
+                        <button key={cat} onClick={() => setSeedCategoryFilter(cat)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${seedCategoryFilter === cat ? "bg-emerald-500 text-white" : "bg-white/5 border border-white/10 text-white/60 hover:text-white"}`}>
+                          {cat} {cat === "All" ? `(${SEED_TEMPLATES.length})` : `(${SEED_TEMPLATES.filter((s) => s.category === cat).length})`}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Select All */}
+                    <div className="flex items-center justify-between">
+                      <button onClick={selectAllSeeds} className="text-sm text-primary hover:text-primary/80 font-medium">
+                        {selectedSeeds.size === filteredSeeds.length && filteredSeeds.length > 0 ? "Deselect All" : "Select All"} ({filteredSeeds.length})
+                      </button>
+                      <span className="text-sm text-white/50">{selectedSeeds.size} selected</span>
+                    </div>
+
+                    {/* Seed Template List */}
+                    <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+                      {filteredSeeds.map((seed) => {
+                        const globalIdx = SEED_TEMPLATES.indexOf(seed);
+                        const isSelected = selectedSeeds.has(globalIdx);
+                        return (
+                          <div
+                            key={globalIdx}
+                            onClick={() => toggleSeedSelection(globalIdx)}
+                            className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? "bg-emerald-500/10 border-emerald-500/30" : "bg-background border-white/5 hover:border-white/15"}`}
+                          >
+                            <div className={`w-5 h-5 rounded-md border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-all ${isSelected ? "bg-emerald-500 border-emerald-500" : "border-white/30"}`}>
+                              {isSelected && <CheckCircle className="w-3.5 h-3.5 text-white" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-white text-sm font-medium">{seed.title}</span>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/50">{seed.category}</span>
+                                <span className="text-xs text-white/30">{seed.aspectRatio}</span>
+                              </div>
+                              <p className="text-white/40 text-xs mt-1 line-clamp-1">{seed.hiddenPrompt}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-xs text-white/40">{seed.creditCost} cr</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Image Generation Toggle */}
+                    <div className="flex items-center gap-3 bg-background rounded-xl px-4 py-3 border border-white/10">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <div className={`w-10 h-6 rounded-full p-0.5 transition-colors ${generateImages ? "bg-emerald-500" : "bg-white/20"}`} onClick={() => setGenerateImages(!generateImages)}>
+                          <div className={`w-5 h-5 rounded-full bg-white transition-transform ${generateImages ? "translate-x-4" : ""}`} />
+                        </div>
+                        <div>
+                          <span className="text-sm text-white font-medium">Auto-generate preview images</span>
+                          <p className="text-xs text-white/40">{generateImages ? "Imagen API will generate a preview for each template" : "Templates created without images"}</p>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-white/80 block mb-2">Paste JSON Array</label>
+                      <textarea
+                        rows={12}
+                        placeholder={`[\n  {\n    "title": "My Template",\n    "category": "Portrait",\n    "hiddenPrompt": "A detailed prompt...",\n    "model": "imagen-3",\n    "creditCost": 1,\n    "aspectRatio": "1:1",\n    "tags": ["tag1", "tag2"]\n  }\n]`}
+                        value={jsonInput}
+                        onChange={(e) => setJsonInput(e.target.value)}
+                        className="w-full bg-background border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-primary transition-colors resize-none font-mono text-sm"
+                      />
+                    </div>
+                    <p className="text-xs text-white/40">
+                      Required fields: <code className="text-primary/80">title</code>, <code className="text-primary/80">category</code>, <code className="text-primary/80">hiddenPrompt</code>. Optional: model (default: imagen-3), creditCost (default: 1), aspectRatio (default: 1:1), tags.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-white/10 flex items-center justify-between">
+                <button onClick={() => { if (bulkProgress.status !== "generating") setShowBulkModal(false); }} className="px-5 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all text-sm font-medium">
+                  {bulkProgress.status === "done" ? "Close" : "Cancel"}
+                </button>
+                {bulkTab === "seed" ? (
+                  <button
+                    onClick={handleBulkSeed}
+                    disabled={selectedSeeds.size === 0 || bulkProgress.status === "generating"}
+                    className="px-6 py-2.5 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all text-sm font-medium shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {bulkProgress.status === "generating" ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                    ) : (
+                      <><Upload className="w-4 h-4" /> Publish {selectedSeeds.size} Templates</>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleJsonImport}
+                    disabled={!jsonInput.trim() || bulkProgress.status === "generating"}
+                    className="px-6 py-2.5 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all text-sm font-medium shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {bulkProgress.status === "generating" ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Importing...</>
+                    ) : (
+                      <><FileJson className="w-4 h-4" /> Import & Publish</>
+                    )}
+                  </button>
+                )}
+              </div>
+
             </motion.div>
           </motion.div>
         )}

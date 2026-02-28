@@ -121,11 +121,6 @@ export function Navbar() {
                     <Link to="/dashboard/profile" onClick={() => setShowMenu(false)} className="block px-4 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">
                       Profile Settings
                     </Link>
-                    {profile?.role === "admin" && (
-                      <Link to="/super-admin" onClick={() => setShowMenu(false)} className="block px-4 py-2 text-sm text-primary hover:bg-primary/5 transition-colors">
-                        Super Admin
-                      </Link>
-                    )}
                     <button
                       onClick={() => { logout(); setShowMenu(false); }}
                       className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-400/5 transition-colors"

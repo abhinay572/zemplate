@@ -10,13 +10,14 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { adminPath } from "@/lib/admin";
 
 const ADMIN_SIDEBAR_LINKS = [
-  { icon: LayoutDashboard, label: "Overview", href: "/super-admin" },
-  { icon: ImageIcon, label: "Templates", href: "/super-admin/templates" },
-  { icon: Cpu, label: "AI Models", href: "/super-admin/models" },
-  { icon: Users, label: "Users", href: "/super-admin/users" },
-  { icon: BarChart3, label: "Analytics", href: "/super-admin/analytics" },
+  { icon: LayoutDashboard, label: "Overview", href: adminPath() },
+  { icon: ImageIcon, label: "Templates", href: adminPath("templates") },
+  { icon: Cpu, label: "AI Models", href: adminPath("models") },
+  { icon: Users, label: "Users", href: adminPath("users") },
+  { icon: BarChart3, label: "Analytics", href: adminPath("analytics") },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

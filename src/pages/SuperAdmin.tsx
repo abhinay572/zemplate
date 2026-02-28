@@ -28,6 +28,7 @@ import { getTotalUserCount } from "@/lib/firestore/users";
 import { getTemplateCount } from "@/lib/firestore/templates";
 import { getRecentGenerations } from "@/lib/firestore/generations";
 import { getEnabledModels } from "@/lib/firestore/aiModels";
+import { adminPath } from "@/lib/admin";
 
 const weeklyData = [
   { name: "Mon", generations: 0 },
@@ -164,7 +165,7 @@ export function SuperAdmin() {
           {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
-              to="/super-admin/templates"
+              to={adminPath("templates")}
               className="flex items-center gap-4 p-5 bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 rounded-2xl hover:border-primary/40 transition-all active:scale-[0.98] group"
             >
               <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -176,7 +177,7 @@ export function SuperAdmin() {
               </div>
             </Link>
             <Link
-              to="/super-admin/models"
+              to={adminPath("models")}
               className="flex items-center gap-4 p-5 bg-surface border border-white/10 rounded-2xl hover:border-white/20 transition-all active:scale-[0.98] group"
             >
               <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -188,7 +189,7 @@ export function SuperAdmin() {
               </div>
             </Link>
             <Link
-              to="/super-admin/users"
+              to={adminPath("users")}
               className="flex items-center gap-4 p-5 bg-surface border border-white/10 rounded-2xl hover:border-white/20 transition-all active:scale-[0.98] group"
             >
               <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">

@@ -34,6 +34,7 @@ import { SuperAdminModels } from "./pages/SuperAdminModels";
 import { SuperAdminUsers } from "./pages/SuperAdminUsers";
 import { SuperAdminAnalytics } from "./pages/SuperAdminAnalytics";
 import { BottomNav } from "./components/layout/BottomNav";
+import { ADMIN_BASE } from "./lib/admin";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -74,12 +75,12 @@ function AnimatedRoutes() {
           <Route path="/dashboard/usage" element={<ProtectedRoute><DashboardUsage /></ProtectedRoute>} />
           <Route path="/dashboard/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
-          {/* Super Admin Routes (Admin only) */}
-          <Route path="/super-admin" element={<AdminRoute><SuperAdmin /></AdminRoute>} />
-          <Route path="/super-admin/templates" element={<AdminRoute><SuperAdminTemplates /></AdminRoute>} />
-          <Route path="/super-admin/models" element={<AdminRoute><SuperAdminModels /></AdminRoute>} />
-          <Route path="/super-admin/users" element={<AdminRoute><SuperAdminUsers /></AdminRoute>} />
-          <Route path="/super-admin/analytics" element={<AdminRoute><SuperAdminAnalytics /></AdminRoute>} />
+          {/* Super Admin Routes (Admin only - hidden behind secret path) */}
+          <Route path={ADMIN_BASE} element={<AdminRoute><SuperAdmin /></AdminRoute>} />
+          <Route path={`${ADMIN_BASE}/templates`} element={<AdminRoute><SuperAdminTemplates /></AdminRoute>} />
+          <Route path={`${ADMIN_BASE}/models`} element={<AdminRoute><SuperAdminModels /></AdminRoute>} />
+          <Route path={`${ADMIN_BASE}/users`} element={<AdminRoute><SuperAdminUsers /></AdminRoute>} />
+          <Route path={`${ADMIN_BASE}/analytics`} element={<AdminRoute><SuperAdminAnalytics /></AdminRoute>} />
         </Routes>
       </motion.div>
     </AnimatePresence>

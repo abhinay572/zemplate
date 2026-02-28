@@ -2,17 +2,18 @@ import { ref, uploadBytes, uploadString, getDownloadURL, deleteObject } from "fi
 import { storage } from "@/lib/firebase";
 
 // Compress and resize an image file before upload (returns a smaller File)
+// Uses high quality settings — visually identical to original, just smaller file size
 export function compressImage(
   file: File,
-  maxWidth = 800,
-  maxHeight = 800,
-  quality = 0.75
+  maxWidth = 1200,
+  maxHeight = 1200,
+  quality = 0.92
 ): Promise<File> {
   return new Promise((resolve, reject) => {
     // Skip non-image files
     if (!file.type.startsWith("image/")) return resolve(file);
-    // Already small enough (< 200KB) — skip compression
-    if (file.size < 200 * 1024) return resolve(file);
+    // Already small enough (< 500KB) — skip compression
+    if (file.size < 500 * 1024) return resolve(file);
 
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -20,7 +21,7 @@ export function compressImage(
       URL.revokeObjectURL(url);
       let { width, height } = img;
 
-      // Scale down proportionally
+      // Only scale down if larger than max (never scale up)
       if (width > maxWidth || height > maxHeight) {
         const ratio = Math.min(maxWidth / width, maxHeight / height);
         width = Math.round(width * ratio);
@@ -31,6 +32,9 @@ export function compressImage(
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d")!;
+      // Use high-quality image rendering
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, width, height);
 
       canvas.toBlob(
@@ -76,9 +80,9 @@ export async function uploadBase64Image(
   return getDownloadURL(snapshot.ref);
 }
 
-// Upload template preview image (compressed for fast upload)
+// Upload template preview image (compressed for fast upload, high quality)
 export async function uploadTemplateImage(file: File, templateId: string): Promise<string> {
-  const compressed = await compressImage(file);
+  const compressed = await compressImage(file, 1200, 1200, 0.92);
   const ext = compressed.name.split(".").pop() || "webp";
   const path = `templates/${templateId}/preview.${ext}`;
   return uploadFile(compressed, path);

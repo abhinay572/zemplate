@@ -260,67 +260,94 @@ export function SuperAdminTemplates() {
     }
   };
 
+  // Process a single template: generate image + upload + create in Firestore
+  const processOneTemplate = async (
+    seed: SeedTemplate,
+    withImages: boolean
+  ): Promise<{ ok: boolean; title: string }> => {
+    try {
+      let imageUrl = "";
+
+      if (withImages) {
+        const shortPrompt = `${seed.hiddenPrompt.slice(0, 200)}, high quality preview thumbnail`;
+        try {
+          const results = await generateWithGemini(shortPrompt, { model: "gemini-2.0-flash-exp" });
+          if (results.length > 0 && results[0].imageBytes) {
+            const slug = seed.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+            imageUrl = await uploadBase64Image(results[0].imageBytes, `templates/${slug}/preview.png`);
+          }
+        } catch (imgErr) {
+          console.warn(`Image generation failed for "${seed.title}", uploading without image:`, imgErr);
+        }
+      }
+
+      await createTemplate({
+        title: seed.title,
+        category: seed.category,
+        hiddenPrompt: seed.hiddenPrompt,
+        model: seed.model,
+        modelSlug: seed.model,
+        creditCost: seed.creditCost,
+        aspectRatio: seed.aspectRatio,
+        tags: seed.tags,
+        imageUrl,
+        status: "published",
+        authorName: "Zemplate",
+        authorAvatar: "",
+      });
+
+      return { ok: true, title: seed.title };
+    } catch (err) {
+      console.error(`Failed to create template "${seed.title}":`, err);
+      return { ok: false, title: seed.title };
+    }
+  };
+
+  // Run bulk items in parallel batches of CONCURRENCY
+  const runParallelBulk = async (items: SeedTemplate[], withImages: boolean) => {
+    const CONCURRENCY = 3; // 3 parallel Gemini calls at once
+    const failed: string[] = [];
+    let completed = 0;
+
+    for (let i = 0; i < items.length; i += CONCURRENCY) {
+      if (abortRef.current) break;
+
+      const batch = items.slice(i, i + CONCURRENCY);
+      const names = batch.map((s) => s.title).join(", ");
+      setBulkProgress((p) => ({ ...p, current: names }));
+
+      const results = await Promise.allSettled(
+        batch.map((seed) => processOneTemplate(seed, withImages))
+      );
+
+      for (const result of results) {
+        completed++;
+        if (result.status === "fulfilled" && !result.value.ok) {
+          failed.push(result.value.title);
+          setBulkProgress((p) => ({ ...p, completed, failed: [...p.failed, result.value.title] }));
+        } else if (result.status === "rejected") {
+          failed.push("unknown");
+          setBulkProgress((p) => ({ ...p, completed, failed: [...p.failed, "unknown"] }));
+        } else {
+          setBulkProgress((p) => ({ ...p, completed }));
+        }
+      }
+    }
+
+    return failed;
+  };
+
   const handleBulkSeed = async () => {
-    const selected = Array.from(selectedSeeds).map((idx) => SEED_TEMPLATES[idx]);
+    const selected = Array.from(selectedSeeds).map((idx: number) => SEED_TEMPLATES[idx]);
     if (selected.length === 0) return;
 
     abortRef.current = false;
     setBulkProgress({ total: selected.length, completed: 0, current: selected[0].title, failed: [], status: "generating" });
-    // Close modal — upload continues in background
     setShowBulkModal(false);
 
-    const failed: string[] = [];
-    let completed = 0;
+    const failed = await runParallelBulk(selected, generateImages);
 
-    for (const seed of selected) {
-      if (abortRef.current) break;
-
-      setBulkProgress((p) => ({ ...p, current: seed.title }));
-
-      try {
-        let imageUrl = "";
-
-        if (generateImages) {
-          const shortPrompt = `${seed.hiddenPrompt.slice(0, 200)}, high quality preview thumbnail`;
-          try {
-            const results = await generateWithGemini(shortPrompt, { model: "gemini-2.0-flash-exp" });
-            if (results.length > 0 && results[0].imageBytes) {
-              const slug = seed.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-              imageUrl = await uploadBase64Image(results[0].imageBytes, `templates/${slug}/preview.png`);
-            }
-          } catch (imgErr) {
-            console.warn(`Image generation failed for "${seed.title}", uploading without image:`, imgErr);
-          }
-        }
-
-        await createTemplate({
-          title: seed.title,
-          category: seed.category,
-          hiddenPrompt: seed.hiddenPrompt,
-          model: seed.model,
-          modelSlug: seed.model,
-          creditCost: seed.creditCost,
-          aspectRatio: seed.aspectRatio,
-          tags: seed.tags,
-          imageUrl,
-          status: "published",
-          authorName: "Zemplate",
-          authorAvatar: "",
-        });
-
-        completed++;
-        setBulkProgress((p) => ({ ...p, completed }));
-      } catch (err) {
-        console.error(`Failed to create template "${seed.title}":`, err);
-        failed.push(seed.title);
-        completed++;
-        setBulkProgress((p) => ({ ...p, completed, failed: [...p.failed, seed.title] }));
-      }
-    }
-
-    setBulkProgress((p) => ({ ...p, status: abortRef.current ? "done" : "done", failed }));
-
-    // Refresh template list
+    setBulkProgress((p) => ({ ...p, status: "done", failed }));
     const { templates: updated } = await getAdminTemplates();
     setTemplates(updated);
     setSelectedSeeds(new Set());
@@ -340,56 +367,18 @@ export function SuperAdminTemplates() {
 
     abortRef.current = false;
     setBulkProgress({ total: parsed.length, completed: 0, current: parsed[0]?.title || "", failed: [], status: "generating" });
-    // Close modal — upload continues in background
     setShowBulkModal(false);
 
-    const failed: string[] = [];
-    let completed = 0;
+    // Normalize JSON items to SeedTemplate shape
+    const normalized: SeedTemplate[] = parsed.map((item) => ({
+      ...item,
+      model: item.model || "nano-banana",
+      creditCost: item.creditCost || 1,
+      aspectRatio: item.aspectRatio || "1:1",
+      tags: item.tags || [],
+    }));
 
-    for (const item of parsed) {
-      if (abortRef.current) break;
-      setBulkProgress((p) => ({ ...p, current: item.title }));
-
-      try {
-        let imageUrl = "";
-
-        if (generateImages) {
-          const shortPrompt = `${item.hiddenPrompt.slice(0, 200)}, high quality preview thumbnail`;
-          try {
-            const results = await generateWithGemini(shortPrompt, { model: "gemini-2.0-flash-exp" });
-            if (results.length > 0 && results[0].imageBytes) {
-              const slug = item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-              imageUrl = await uploadBase64Image(results[0].imageBytes, `templates/${slug}/preview.png`);
-            }
-          } catch (imgErr) {
-            console.warn(`Image generation failed for "${item.title}":`, imgErr);
-          }
-        }
-
-        await createTemplate({
-          title: item.title,
-          category: item.category,
-          hiddenPrompt: item.hiddenPrompt,
-          model: item.model || "nano-banana",
-          modelSlug: item.model || "nano-banana",
-          creditCost: item.creditCost || 1,
-          aspectRatio: item.aspectRatio || "1:1",
-          tags: item.tags || [],
-          imageUrl,
-          status: "published",
-          authorName: "Zemplate",
-          authorAvatar: "",
-        });
-
-        completed++;
-        setBulkProgress((p) => ({ ...p, completed }));
-      } catch (err) {
-        console.error(`Failed to create template "${item.title}":`, err);
-        failed.push(item.title);
-        completed++;
-        setBulkProgress((p) => ({ ...p, completed, failed: [...p.failed, item.title] }));
-      }
-    }
+    const failed = await runParallelBulk(normalized, generateImages);
 
     setBulkProgress((p) => ({ ...p, status: "done", failed }));
     const { templates: updated } = await getAdminTemplates();

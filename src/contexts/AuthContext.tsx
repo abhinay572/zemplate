@@ -9,15 +9,15 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
-import { createUserProfile, getUserProfile, type UserProfile } from "@/lib/firestore/users";
+import { createUserProfile, getUserProfile, getUserByReferralCode, addCredits, updateUserProfile, type UserProfile } from "@/lib/firestore/users";
 
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
   loginWithEmail: (email: string, password: string) => Promise<void>;
-  signupWithEmail: (email: string, password: string, name: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  signupWithEmail: (email: string, password: string, name: string, referralCode?: string) => Promise<void>;
+  loginWithGoogle: (referralCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -52,18 +52,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await fetchProfile(result.user.uid);
   };
 
-  const signupWithEmail = async (email: string, password: string, name: string) => {
+  const signupWithEmail = async (email: string, password: string, name: string, referralCode?: string) => {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(result.user, { displayName: name });
     await createUserProfile(result.user.uid, {
       name,
       email,
       avatar: result.user.photoURL || "",
+      referredBy: referralCode || undefined,
     });
+    // Award referral bonus to referrer
+    if (referralCode) {
+      try {
+        const referrer = await getUserByReferralCode(referralCode);
+        if (referrer) {
+          await addCredits(referrer.id, 3);
+          await updateUserProfile(referrer.id, {
+            referralCreditsEarned: (referrer.referralCreditsEarned || 0) + 3,
+          });
+        }
+      } catch (err) {
+        console.error("Referral reward failed:", err);
+      }
+    }
     await fetchProfile(result.user.uid);
   };
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (referralCode?: string) => {
     const result = await signInWithPopup(auth, googleProvider);
     const existing = await getUserProfile(result.user.uid);
     if (!existing) {
@@ -71,7 +86,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: result.user.displayName || "User",
         email: result.user.email || "",
         avatar: result.user.photoURL || "",
+        referredBy: referralCode || undefined,
       });
+      // Award referral bonus to referrer (only for new users)
+      if (referralCode) {
+        try {
+          const referrer = await getUserByReferralCode(referralCode);
+          if (referrer) {
+            await addCredits(referrer.id, 3);
+            await updateUserProfile(referrer.id, {
+              referralCreditsEarned: (referrer.referralCreditsEarned || 0) + 3,
+            });
+          }
+        } catch (err) {
+          console.error("Referral reward failed:", err);
+        }
+      }
     }
     await fetchProfile(result.user.uid);
   };

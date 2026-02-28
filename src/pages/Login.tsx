@@ -1,8 +1,10 @@
-import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, Github, ArrowRight, AlertCircle } from "lucide-react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Mail, Lock, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { SEO } from "@/components/seo/SEO";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 export function Login() {
   const { loginWithEmail, loginWithGoogle, user } = useAuth();
@@ -11,11 +13,10 @@ export function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
-  // Redirect if already logged in
   if (user) {
-    navigate("/dashboard", { replace: true });
-    return null;
+    return <Navigate to="/dashboard" replace />;
   }
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -47,6 +48,20 @@ export function Login() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Enter your email address first, then click Forgot password.");
+      return;
+    }
+    setError("");
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setResetSent(true);
+    } catch (err: any) {
+      setError("Could not send reset email. Check the email address and try again.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <SEO
@@ -69,6 +84,13 @@ export function Login() {
             <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
               <AlertCircle className="w-4 h-4 shrink-0" />
               {error}
+            </div>
+          )}
+
+          {resetSent && (
+            <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              Password reset email sent! Check your inbox.
             </div>
           )}
 
@@ -113,9 +135,9 @@ export function Login() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-sm font-medium text-white/70">Password</label>
-                <a href="#" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+                <button type="button" onClick={handleForgotPassword} className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
                   Forgot password?
-                </a>
+                </button>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">

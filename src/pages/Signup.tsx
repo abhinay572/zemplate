@@ -1,4 +1,4 @@
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Mail, Lock, User, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { SEO } from "@/components/seo/SEO";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,8 +16,7 @@ export function Signup() {
   const [loading, setLoading] = useState(false);
 
   if (user) {
-    navigate("/dashboard", { replace: true });
-    return null;
+    return <Navigate to="/dashboard" replace />;
   }
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -31,7 +30,7 @@ export function Signup() {
 
     setLoading(true);
     try {
-      await signupWithEmail(email, password, name);
+      await signupWithEmail(email, password, name, referralCode || undefined);
       navigate("/dashboard");
     } catch (err: any) {
       if (err.message?.includes("email-already-in-use")) {
@@ -48,7 +47,7 @@ export function Signup() {
     setError("");
     setLoading(true);
     try {
-      await loginWithGoogle();
+      await loginWithGoogle(referralCode || undefined);
       navigate("/dashboard");
     } catch (err: any) {
       setError(err.message || "Google signup failed");

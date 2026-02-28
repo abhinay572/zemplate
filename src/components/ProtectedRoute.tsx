@@ -18,7 +18,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "";
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "Zem@SuperAdmin2024#Secure";
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_KEY = "admin_lockout_until";
 const SESSION_KEY = "admin_authenticated";

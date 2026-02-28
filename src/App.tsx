@@ -63,6 +63,8 @@ function AnimatedRoutes() {
           <Route path="/templates/:category" element={<Category />} />
           <Route path="/privacy-policy" element={<Legal />} />
           <Route path="/terms" element={<Legal />} />
+          <Route path="/refund-policy" element={<Legal />} />
+          <Route path="/cookie-policy" element={<Legal />} />
           <Route path="/vs/:competitor" element={<Comparison />} />
           <Route path="/free-tools/:tool" element={<FreeTool />} />
 

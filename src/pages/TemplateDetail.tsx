@@ -43,7 +43,21 @@ export function TemplateDetail() {
 
   useEffect(() => {
     if (!id) return;
-    getTemplate(id)
+
+    // For mock template IDs, skip Firestore entirely
+    const mock = MOCK_TEMPLATES.find((m) => m.id === id);
+    if (mock) {
+      setTemplate(mock);
+      setIsLoading(false);
+      return;
+    }
+
+    // For real Firestore templates, add a 5s timeout to prevent indefinite loading
+    const timeout = new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), 5000)
+    );
+
+    Promise.race([getTemplate(id), timeout])
       .then((t) => {
         if (t) {
           const ratio = t.aspectRatio === "3:4" || t.aspectRatio === "9:16" ? "portrait"
@@ -62,13 +76,11 @@ export function TemplateDetail() {
           });
           if (t.aspectRatio) setSelectedRatio(t.aspectRatio);
         } else {
-          const mock = MOCK_TEMPLATES.find((m) => m.id === id) || MOCK_TEMPLATES[0];
-          setTemplate(mock);
+          setTemplate(MOCK_TEMPLATES[0]);
         }
       })
       .catch(() => {
-        const mock = MOCK_TEMPLATES.find((m) => m.id === id) || MOCK_TEMPLATES[0];
-        setTemplate(mock);
+        setTemplate(MOCK_TEMPLATES[0]);
       })
       .finally(() => setIsLoading(false));
   }, [id]);

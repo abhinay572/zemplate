@@ -34,7 +34,7 @@ interface ToolConfig {
 }
 
 export const TOOL_CONFIG: Record<ToolType, ToolConfig> = {
-  "template-generate": { provider: "imagen", creditCost: 1, modelSlug: "imagen-3" },
+  "template-generate": { provider: "gemini", creditCost: 1, modelSlug: "nano-banana" },
   "text-to-image": { provider: "gemini", creditCost: 1, modelSlug: "nano-banana" },
   "face-swap": { provider: "magichour", creditCost: 2, modelSlug: "mh-face-swap" },
   "face-swap-video": { provider: "magichour", creditCost: 5, modelSlug: "mh-face-swap" },
@@ -75,13 +75,11 @@ export async function generateFromTemplate(
     prompt = `${hiddenPrompt}. ${STYLE_PROMPTS[options.style].suffix}`;
   }
 
-  // Use Imagen 3 for template generation by default
-  if (!options.model || options.model === "imagen-3") {
-    return generateWithImagen(prompt, { aspectRatio: options.aspectRatio });
-  }
-
-  // Use Gemini for other models
-  return generateWithGemini(prompt, { model: options.model });
+  // Use Gemini (nano-banana) for template generation
+  const model = options.model && options.model !== "imagen-3" && options.model !== "nano-banana"
+    ? options.model
+    : "gemini-2.0-flash-exp";
+  return generateWithGemini(prompt, { model });
 }
 
 // Free-form text-to-image with style

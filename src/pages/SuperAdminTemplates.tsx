@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { SEO } from "@/components/seo/SEO";
 import { getAdminTemplates, createTemplate, createTemplateBatch, deleteTemplate, updateTemplate, type Template } from "@/lib/firestore/templates";
 import { uploadTemplateImage, uploadBase64Image } from "@/lib/storage";
-import { generateWithImagen } from "@/lib/providers/gemini-image";
+import { generateWithGemini } from "@/lib/providers/gemini-image";
 import { SEED_TEMPLATES, type SeedTemplate } from "@/lib/seed-templates";
 
 const CATEGORIES = [
@@ -253,10 +253,10 @@ export function SuperAdminTemplates() {
         let imageUrl = "";
 
         if (generateImages) {
-          // Generate preview image using Imagen API
+          // Generate preview image using Gemini (nano-banana)
           const shortPrompt = `${seed.hiddenPrompt.slice(0, 200)}, high quality preview thumbnail`;
           try {
-            const results = await generateWithImagen(shortPrompt, { aspectRatio: seed.aspectRatio });
+            const results = await generateWithGemini(shortPrompt, { model: "gemini-2.0-flash-exp" });
             if (results.length > 0 && results[0].imageBytes) {
               const slug = seed.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
               imageUrl = await uploadBase64Image(results[0].imageBytes, `templates/${slug}/preview.png`);
@@ -327,7 +327,7 @@ export function SuperAdminTemplates() {
         if (generateImages) {
           const shortPrompt = `${item.hiddenPrompt.slice(0, 200)}, high quality preview thumbnail`;
           try {
-            const results = await generateWithImagen(shortPrompt, { aspectRatio: item.aspectRatio || "1:1" });
+            const results = await generateWithGemini(shortPrompt, { model: "gemini-2.0-flash-exp" });
             if (results.length > 0 && results[0].imageBytes) {
               const slug = item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
               imageUrl = await uploadBase64Image(results[0].imageBytes, `templates/${slug}/preview.png`);
@@ -341,8 +341,8 @@ export function SuperAdminTemplates() {
           title: item.title,
           category: item.category,
           hiddenPrompt: item.hiddenPrompt,
-          model: item.model || "imagen-3",
-          modelSlug: item.model || "imagen-3",
+          model: item.model || "nano-banana",
+          modelSlug: item.model || "nano-banana",
           creditCost: item.creditCost || 1,
           aspectRatio: item.aspectRatio || "1:1",
           tags: item.tags || [],

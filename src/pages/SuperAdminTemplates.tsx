@@ -19,11 +19,6 @@ import {
   FileJson,
   Square,
   PlusCircle,
-  Image as ImageIcon,
-  TrendingUp,
-  FileCheck,
-  FileEdit,
-  BarChart3,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -156,7 +151,7 @@ export function SuperAdminTemplates() {
         tags: formData.tags.split(",").map((t) => t.trim()).filter(Boolean),
         imageUrl,
         status,
-        authorName: "Admin",
+        authorName: "Zemplate",
         authorAvatar: "",
       });
       const { templates: updated } = await getAdminTemplates();
@@ -449,101 +444,75 @@ export function SuperAdminTemplates() {
       <SEO title="Manage Templates | Super Admin | Zemplate.ai" description="Upload and manage AI templates with hidden prompts." />
       <Navbar />
       <AdminLayout>
-        <div className="max-w-6xl mx-auto space-y-10">
-          {/* Header */}
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="max-w-6xl mx-auto space-y-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
               <h1 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Templates</h1>
               <p className="text-white/60">Upload templates with hidden prompts. Users never see the prompt.</p>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => { setShowBulkModal(true); setBulkProgress({ total: 0, completed: 0, current: "", failed: [], status: "idle" }); }} className="bg-surface border border-white/10 hover:border-white/20 text-white px-5 py-3 rounded-xl font-medium transition-all active:scale-[0.98] flex items-center gap-2">
-                <Package className="w-5 h-5 text-emerald-400" /> Bulk Upload
+              <button onClick={() => { setShowBulkModal(true); setBulkProgress({ total: 0, completed: 0, current: "", failed: [], status: "idle" }); }} className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+                <Package className="w-5 h-5" /> Bulk Upload
               </button>
-              <button onClick={() => { setEditingTemplate(null); setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" }); setPreviewImage(null); setImageFile(null); setShowUploadModal(true); }} className="bg-primary hover:bg-primary/90 text-white px-5 py-3 rounded-xl font-medium transition-all active:scale-[0.98] flex items-center gap-2">
+              <button onClick={() => { setEditingTemplate(null); setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" }); setPreviewImage(null); setImageFile(null); setShowUploadModal(true); }} className="bg-primary hover:bg-primary/90 text-white px-5 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-primary/20">
                 <Plus className="w-5 h-5" /> Upload Single
               </button>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: "Total Templates", value: templates.length.toString(), change: "Live", icon: ImageIcon, color: "text-primary", bg: "bg-primary/10" },
-              { label: "Published", value: publishedCount.toString(), change: "Active", icon: FileCheck, color: "text-emerald-400", bg: "bg-emerald-400/10" },
-              { label: "Drafts", value: draftCount.toString(), change: "Pending", icon: FileEdit, color: "text-amber-400", bg: "bg-amber-400/10" },
-              { label: "Total Uses", value: templates.reduce((s, t) => s + (t.usageCount || 0), 0).toLocaleString(), change: "All time", icon: BarChart3, color: "text-blue-400", bg: "bg-blue-400/10" },
-            ].map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-                className="bg-surface border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-all group"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center`}>
-                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                  </div>
-                  <span className="text-xs font-medium text-emerald-400 flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3" />
-                    {stat.change}
-                  </span>
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-1">{stat.value}</h3>
-                <p className="text-white/50 text-sm">{stat.label}</p>
-              </motion.div>
+              { label: "Total Templates", value: templates.length.toString() },
+              { label: "Published", value: publishedCount.toString() },
+              { label: "Drafts", value: draftCount.toString() },
+              { label: "Total Uses", value: templates.reduce((s, t) => s + (t.usageCount || 0), 0).toLocaleString() },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-surface border border-white/10 rounded-xl p-4">
+                <p className="text-white/50 text-xs font-medium uppercase tracking-wider">{stat.label}</p>
+                <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
+              </div>
             ))}
           </div>
 
-          {/* Search & Category */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="space-y-4"
-          >
-            <div className="relative">
+          {/* Search */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-              <input type="text" placeholder="Search templates by name..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-surface border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-white/40 focus:outline-none focus:border-primary transition-colors" />
+              <input type="text" placeholder="Search templates by name..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-surface border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-white/40 focus:outline-none focus:border-primary" />
             </div>
+          </div>
 
-            {/* Category Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide items-center">
-              {CATEGORIES.map((cat) => (
-                <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${activeCategory === cat ? "bg-primary text-white" : "bg-surface border border-white/10 text-white/60 hover:text-white hover:border-white/20"}`}>
-                  {cat}
-                </button>
-              ))}
-              {showAddCategory ? (
-                <div className="flex items-center gap-2 shrink-0">
-                  <input
-                    type="text"
-                    autoFocus
-                    placeholder="Category name"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") addCustomCategory(newCategoryName); if (e.key === "Escape") setShowAddCategory(false); }}
-                    className="bg-surface border border-primary/40 rounded-full px-4 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none w-40"
-                  />
-                  <button onClick={() => addCustomCategory(newCategoryName)} className="p-1.5 rounded-full bg-primary text-white hover:bg-primary/90 transition-all"><CheckCircle className="w-4 h-4" /></button>
-                  <button onClick={() => { setShowAddCategory(false); setNewCategoryName(""); }} className="p-1.5 rounded-full bg-white/10 text-white/60 hover:text-white transition-all"><X className="w-4 h-4" /></button>
-                </div>
-              ) : (
-                <button onClick={() => setShowAddCategory(true)} className="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-surface border border-dashed border-white/20 text-white/40 hover:text-white hover:border-primary/40 flex items-center gap-1.5">
-                  <PlusCircle className="w-3.5 h-3.5" /> Add Category
-                </button>
-              )}
-            </div>
-          </motion.div>
+          {/* Category Tabs */}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide items-center">
+            {CATEGORIES.map((cat) => (
+              <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${activeCategory === cat ? "bg-primary text-white" : "bg-surface border border-white/10 text-white/60 hover:text-white hover:border-white/20"}`}>
+                {cat}
+              </button>
+            ))}
+            {showAddCategory ? (
+              <div className="flex items-center gap-2 shrink-0">
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Category name"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") addCustomCategory(newCategoryName); if (e.key === "Escape") setShowAddCategory(false); }}
+                  className="bg-surface border border-primary/40 rounded-full px-4 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none w-40"
+                />
+                <button onClick={() => addCustomCategory(newCategoryName)} className="p-1.5 rounded-full bg-primary text-white hover:bg-primary/90 transition-all"><CheckCircle className="w-4 h-4" /></button>
+                <button onClick={() => { setShowAddCategory(false); setNewCategoryName(""); }} className="p-1.5 rounded-full bg-white/10 text-white/60 hover:text-white transition-all"><X className="w-4 h-4" /></button>
+              </div>
+            ) : (
+              <button onClick={() => setShowAddCategory(true)} className="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-surface border border-dashed border-white/20 text-white/40 hover:text-white hover:border-primary/40 flex items-center gap-1.5">
+                <PlusCircle className="w-3.5 h-3.5" /> Add Category
+              </button>
+            )}
+          </div>
 
           {/* Templates Table */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-            className="bg-surface border border-white/10 rounded-2xl overflow-hidden"
-          >
+          <div className="bg-surface border border-white/10 rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -559,16 +528,16 @@ export function SuperAdminTemplates() {
                 </thead>
                 <tbody>
                   {isLoading ? (
-                    <tr><td colSpan={7} className="p-8 text-center text-white/40"><Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-primary" />Loading templates...</td></tr>
+                    <tr><td colSpan={7} className="p-8 text-center text-white/40">Loading templates...</td></tr>
                   ) : filteredTemplates.length > 0 ? filteredTemplates.map((template) => (
                     <tr key={template.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           {template.imageUrl ? (
-                            <img src={template.imageUrl} alt={template.title} className="w-12 h-12 rounded-xl object-cover border border-white/10" referrerPolicy="no-referrer" />
+                            <img src={template.imageUrl} alt={template.title} className="w-12 h-12 rounded-lg object-cover border border-white/10" referrerPolicy="no-referrer" />
                           ) : (
-                            <div className="w-12 h-12 rounded-xl bg-primary/10 border border-white/10 flex items-center justify-center">
-                              <ImageIcon className="w-5 h-5 text-primary/60" />
+                            <div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                              <Package className="w-5 h-5 text-white/20" />
                             </div>
                           )}
                           <div>
@@ -582,25 +551,16 @@ export function SuperAdminTemplates() {
                           <p className="text-white/60 text-xs leading-relaxed line-clamp-2">
                             {revealedPrompts.has(template.id!) ? template.hiddenPrompt : "••••••••••••••••••••••••••••••"}
                           </p>
-                          <button onClick={() => togglePromptReveal(template.id!)} className="p-1 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-colors shrink-0">
-                            {revealedPrompts.has(template.id!) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <button onClick={() => togglePromptReveal(template.id!)} className="text-white/40 hover:text-white transition-colors shrink-0 mt-0.5">
+                            {revealedPrompts.has(template.id!) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
-                          <button onClick={() => navigator.clipboard.writeText(template.hiddenPrompt || "")} className="p-1 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-colors shrink-0">
-                            <Copy className="w-3.5 h-3.5" />
+                          <button onClick={() => navigator.clipboard.writeText(template.hiddenPrompt || "")} className="text-white/40 hover:text-white transition-colors shrink-0 mt-0.5">
+                            <Copy className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
-                      <td className="p-4">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                          {template.model}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <span className="text-white text-sm font-medium flex items-center gap-1">
-                          <Zap className="w-3 h-3 text-tertiary" />
-                          {template.creditCost}
-                        </span>
-                      </td>
+                      <td className="p-4"><span className="text-white/70 text-sm">{template.model}</span></td>
+                      <td className="p-4"><span className="text-white text-sm font-medium">{template.creditCost}</span></td>
                       <td className="p-4"><span className="text-white/70 text-sm">{(template.usageCount || 0).toLocaleString()}</span></td>
                       <td className="p-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${template.status === "published" ? "bg-emerald-500/10 text-emerald-400" : "bg-yellow-500/10 text-yellow-400"}`}>
@@ -609,26 +569,19 @@ export function SuperAdminTemplates() {
                         </span>
                       </td>
                       <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-2">
                           <button onClick={() => handleEdit(template)} className="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"><Edit3 className="w-4 h-4" /></button>
                           <button onClick={() => handleDelete(template.id!)} className="p-2 rounded-lg hover:bg-red-400/10 text-white/50 hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </td>
                     </tr>
                   )) : (
-                    <tr><td colSpan={7} className="p-12 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
-                          <Package className="w-6 h-6 text-white/20" />
-                        </div>
-                        <p className="text-white/40 text-sm">No templates found. Use Bulk Upload to seed templates!</p>
-                      </div>
-                    </td></tr>
+                    <tr><td colSpan={7} className="p-8 text-center text-white/40">No templates found. Use Bulk Upload to seed templates!</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
-          </motion.div>
+          </div>
         </div>
       </AdminLayout>
 

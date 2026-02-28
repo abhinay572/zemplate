@@ -1,6 +1,58 @@
 import { ref, uploadBytes, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 
+// Compress and resize an image file before upload (returns a smaller File)
+export function compressImage(
+  file: File,
+  maxWidth = 800,
+  maxHeight = 800,
+  quality = 0.75
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    // Skip non-image files
+    if (!file.type.startsWith("image/")) return resolve(file);
+    // Already small enough (< 200KB) — skip compression
+    if (file.size < 200 * 1024) return resolve(file);
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+
+      // Scale down proportionally
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error("Compression failed"));
+          const compressed = new File([blob], file.name.replace(/\.\w+$/, ".webp"), {
+            type: "image/webp",
+          });
+          resolve(compressed);
+        },
+        "image/webp",
+        quality
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file); // fallback to original on error
+    };
+    img.src = url;
+  });
+}
+
 // Upload a file (from input[type=file])
 export async function uploadFile(
   file: File,
@@ -24,11 +76,12 @@ export async function uploadBase64Image(
   return getDownloadURL(snapshot.ref);
 }
 
-// Upload template preview image
+// Upload template preview image (compressed for fast upload)
 export async function uploadTemplateImage(file: File, templateId: string): Promise<string> {
-  const ext = file.name.split(".").pop() || "png";
+  const compressed = await compressImage(file);
+  const ext = compressed.name.split(".").pop() || "webp";
   const path = `templates/${templateId}/preview.${ext}`;
-  return uploadFile(file, path);
+  return uploadFile(compressed, path);
 }
 
 // Upload generated image
@@ -41,18 +94,20 @@ export async function uploadGeneratedImage(
   return uploadBase64Image(base64Data, path);
 }
 
-// Upload user avatar
+// Upload user avatar (compressed)
 export async function uploadAvatar(file: File, userId: string): Promise<string> {
-  const ext = file.name.split(".").pop() || "jpg";
+  const compressed = await compressImage(file, 256, 256, 0.8);
+  const ext = compressed.name.split(".").pop() || "webp";
   const path = `avatars/${userId}/avatar.${ext}`;
-  return uploadFile(file, path);
+  return uploadFile(compressed, path);
 }
 
-// Upload community post image
+// Upload community post image (compressed)
 export async function uploadCommunityImage(file: File, postId: string): Promise<string> {
-  const ext = file.name.split(".").pop() || "png";
+  const compressed = await compressImage(file, 1200, 1200, 0.8);
+  const ext = compressed.name.split(".").pop() || "webp";
   const path = `community/${postId}/image.${ext}`;
-  return uploadFile(file, path);
+  return uploadFile(compressed, path);
 }
 
 // Delete a file from storage

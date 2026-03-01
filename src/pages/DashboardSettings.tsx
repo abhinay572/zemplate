@@ -40,7 +40,7 @@ export function DashboardSettings() {
     try {
       let avatarUrl = profile?.avatar || "";
       if (avatarFile) {
-        avatarUrl = await uploadAvatar(user.uid, avatarFile);
+        avatarUrl = await uploadAvatar(avatarFile, user.uid);
       }
       await updateUserProfile(user.uid, { name, bio, avatar: avatarUrl });
       await refreshProfile();

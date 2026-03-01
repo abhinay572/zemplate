@@ -24,7 +24,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { SEO } from "@/components/seo/SEO";
 import { getAdminTemplates, createTemplate, createTemplateBatch, deleteTemplate, updateTemplate, type Template } from "@/lib/firestore/templates";
-import { uploadTemplateImage, uploadBase64Image } from "@/lib/storage";
+import { uploadTemplateImage, uploadBase64Image, uploadFile, compressImage } from "@/lib/storage";
 import { generateWithGemini } from "@/lib/providers/gemini-image";
 import { SEED_TEMPLATES, type SeedTemplate } from "@/lib/seed-templates";
 
@@ -125,10 +125,14 @@ export function SuperAdminTemplates() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      // Show preview immediately
       const reader = new FileReader();
       reader.onload = () => setPreviewImage(reader.result as string);
       reader.readAsDataURL(file);
+      // Pre-compress in background so publish is instant
+      compressImage(file, 1200, 1200, 0.92).then((compressed) => {
+        setImageFile(compressed);
+      });
     }
   };
 
@@ -138,7 +142,10 @@ export function SuperAdminTemplates() {
     try {
       let imageUrl = "";
       if (imageFile) {
-        imageUrl = await uploadTemplateImage(imageFile, formData.title.toLowerCase().replace(/\s+/g, "-"));
+        // imageFile is already pre-compressed from handleImageUpload
+        const slug = formData.title.toLowerCase().replace(/\s+/g, "-");
+        const ext = imageFile.name.split(".").pop() || "webp";
+        imageUrl = await uploadFile(imageFile, `templates/${slug}/preview.${ext}`);
       }
       await createTemplate({
         title: formData.title,
@@ -197,7 +204,9 @@ export function SuperAdminTemplates() {
     try {
       let imageUrl = editingTemplate.imageUrl;
       if (imageFile) {
-        imageUrl = await uploadTemplateImage(imageFile, editingTemplate.id);
+        // imageFile is already pre-compressed from handleImageUpload
+        const ext = imageFile.name.split(".").pop() || "webp";
+        imageUrl = await uploadFile(imageFile, `templates/${editingTemplate.id}/preview.${ext}`);
       }
       await updateTemplate(editingTemplate.id, {
         title: formData.title,
@@ -305,7 +314,7 @@ export function SuperAdminTemplates() {
 
   // Run bulk items in parallel batches of CONCURRENCY
   const runParallelBulk = async (items: SeedTemplate[], withImages: boolean) => {
-    const CONCURRENCY = 3; // 3 parallel Gemini calls at once
+    const CONCURRENCY = 5; // 5 parallel Gemini calls at once
     const failed: string[] = [];
     let completed = 0;
 

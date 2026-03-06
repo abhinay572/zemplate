@@ -19,7 +19,7 @@ export function useFirestoreQuery<T>(
       const result = await queryFn();
       setData(result);
     } catch (err: any) {
-      console.error("Firestore query error:", err);
+      console.error("Query error:", err);
       setError(err.message || "Failed to fetch data");
     } finally {
       setLoading(false);
@@ -53,7 +53,7 @@ export function useFirestoreMutation<TArgs extends any[], TResult>(
       const result = await mutationFn(...args);
       return result;
     } catch (err: any) {
-      console.error("Firestore mutation error:", err);
+      console.error("Mutation error:", err);
       setError(err.message || "Operation failed");
       return null;
     } finally {

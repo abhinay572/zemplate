@@ -1,8 +1,4 @@
-import {
-  doc, setDoc, updateDoc, collection, query, where, orderBy, limit,
-  getDocs, serverTimestamp,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 
 export interface SocialCreditClaim {
   id: string;
@@ -16,57 +12,67 @@ export interface SocialCreditClaim {
   createdAt: any;
 }
 
+function mapRow(row: any): SocialCreditClaim {
+  return {
+    id: row.id, userId: row.user_id, userName: row.user_name,
+    platform: row.platform, proofUrl: row.proof_url, status: row.status,
+    reviewedBy: row.reviewed_by || "", reviewedAt: row.reviewed_at,
+    createdAt: row.created_at,
+  };
+}
+
 export async function createSocialClaim(data: {
   userId: string;
   userName: string;
   platform: "instagram" | "twitter" | "youtube";
   proofUrl: string;
 }): Promise<string> {
-  const ref = doc(collection(db, "social_credit_claims"));
-  await setDoc(ref, {
-    ...data,
-    status: "pending",
-    reviewedBy: "",
-    reviewedAt: null,
-    createdAt: serverTimestamp(),
-  });
-  return ref.id;
+  const { data: row, error } = await supabase
+    .from("social_credit_claims")
+    .insert({
+      user_id: data.userId, user_name: data.userName,
+      platform: data.platform, proof_url: data.proofUrl,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return row.id;
 }
 
 export async function hasClaimedPlatform(userId: string, platform: string): Promise<boolean> {
-  const q = query(
-    collection(db, "social_credit_claims"),
-    where("userId", "==", userId),
-    where("platform", "==", platform),
-    where("status", "==", "approved"),
-    limit(1)
-  );
-  const snap = await getDocs(q);
-  return !snap.empty;
+  const { data } = await supabase
+    .from("social_credit_claims")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("platform", platform)
+    .eq("status", "approved")
+    .limit(1)
+    .single();
+  return !!data;
 }
 
 export async function getPendingClaims(): Promise<SocialCreditClaim[]> {
-  const q = query(
-    collection(db, "social_credit_claims"),
-    where("status", "==", "pending"),
-    orderBy("createdAt", "desc")
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as SocialCreditClaim));
+  const { data, error } = await supabase
+    .from("social_credit_claims")
+    .select("*")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return (data || []).map(mapRow);
 }
 
 export async function approveClaim(claimId: string, adminId: string) {
-  await updateDoc(doc(db, "social_credit_claims", claimId), {
-    status: "approved",
-    reviewedBy: adminId,
-    reviewedAt: serverTimestamp(),
-  });
+  const { error } = await supabase
+    .from("social_credit_claims")
+    .update({ status: "approved", reviewed_by: adminId, reviewed_at: new Date().toISOString() })
+    .eq("id", claimId);
+  if (error) throw error;
 }
 
 export async function rejectClaim(claimId: string, adminId: string) {
-  await updateDoc(doc(db, "social_credit_claims", claimId), {
-    status: "rejected",
-    reviewedBy: adminId,
-    reviewedAt: serverTimestamp(),
-  });
+  const { error } = await supabase
+    .from("social_credit_claims")
+    .update({ status: "rejected", reviewed_by: adminId, reviewed_at: new Date().toISOString() })
+    .eq("id", claimId);
+  if (error) throw error;
 }

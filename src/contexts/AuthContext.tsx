@@ -1,15 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import {
-  User,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  updateProfile,
-} from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { createUserProfile, getUserProfile, getUserByReferralCode, addCredits, updateUserProfile, type UserProfile } from "@/lib/firestore/users";
+import type { User } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
@@ -35,33 +27,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
-        await fetchProfile(firebaseUser.uid);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) fetchProfile(u.id).finally(() => setLoading(false));
+      else setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        await fetchProfile(u.id);
       } else {
         setProfile(null);
       }
-      setLoading(false);
     });
-    return unsubscribe;
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const loginWithEmail = async (email: string, password: string) => {
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    await fetchProfile(result.user.uid);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    await fetchProfile(data.user.id);
   };
 
   const signupWithEmail = async (email: string, password: string, name: string, referralCode?: string) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(result.user, { displayName: name });
-    await createUserProfile(result.user.uid, {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: name } },
+    });
+    if (error) throw error;
+    if (!data.user) throw new Error("Signup failed");
+
+    await createUserProfile(data.user.id, {
       name,
       email,
-      avatar: result.user.photoURL || "",
+      avatar: "",
       referredBy: referralCode || undefined,
     });
-    // Award referral bonus to referrer
+
     if (referralCode) {
       try {
         const referrer = await getUserByReferralCode(referralCode);
@@ -75,44 +82,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("Referral reward failed:", err);
       }
     }
-    await fetchProfile(result.user.uid);
+    await fetchProfile(data.user.id);
   };
 
   const loginWithGoogle = async (referralCode?: string) => {
-    const result = await signInWithPopup(auth, googleProvider);
-    const existing = await getUserProfile(result.user.uid);
-    if (!existing) {
-      await createUserProfile(result.user.uid, {
-        name: result.user.displayName || "User",
-        email: result.user.email || "",
-        avatar: result.user.photoURL || "",
-        referredBy: referralCode || undefined,
-      });
-      // Award referral bonus to referrer (only for new users)
-      if (referralCode) {
-        try {
-          const referrer = await getUserByReferralCode(referralCode);
-          if (referrer) {
-            await addCredits(referrer.id, 3);
-            await updateUserProfile(referrer.id, {
-              referralCreditsEarned: (referrer.referralCreditsEarned || 0) + 3,
-            });
-          }
-        } catch (err) {
-          console.error("Referral reward failed:", err);
-        }
-      }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) throw error;
+    // After redirect, onAuthStateChange will fire.
+    // We handle new user profile creation there via a check.
+    // Store referralCode in localStorage so we can use it after redirect.
+    if (referralCode) {
+      localStorage.setItem("pendingReferralCode", referralCode);
     }
-    await fetchProfile(result.user.uid);
   };
 
+  // Handle Google OAuth callback - create profile for new users
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const existing = await getUserProfile(user.id);
+      if (!existing) {
+        await createUserProfile(user.id, {
+          name: user.user_metadata?.full_name || user.user_metadata?.display_name || "User",
+          email: user.email || "",
+          avatar: user.user_metadata?.avatar_url || "",
+          referredBy: localStorage.getItem("pendingReferralCode") || undefined,
+        });
+        const referralCode = localStorage.getItem("pendingReferralCode");
+        if (referralCode) {
+          localStorage.removeItem("pendingReferralCode");
+          try {
+            const referrer = await getUserByReferralCode(referralCode);
+            if (referrer) {
+              await addCredits(referrer.id, 3);
+              await updateUserProfile(referrer.id, {
+                referralCreditsEarned: (referrer.referralCreditsEarned || 0) + 3,
+              });
+            }
+          } catch (err) {
+            console.error("Referral reward failed:", err);
+          }
+        }
+        await fetchProfile(user.id);
+      }
+    })();
+  }, [user]);
+
   const logout = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
     setProfile(null);
   };
 
   const refreshProfile = async () => {
-    if (user) await fetchProfile(user.uid);
+    if (user) await fetchProfile(user.id);
   };
 
   return (

@@ -1,9 +1,4 @@
-import {
-  doc, getDoc, setDoc, updateDoc, collection, query, where,
-  orderBy, limit, getDocs, serverTimestamp, increment, startAfter,
-  DocumentSnapshot,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 
 export interface UserProfile {
   id: string;
@@ -31,6 +26,34 @@ export interface UserProfile {
   updatedAt: any;
 }
 
+function mapRow(row: any): UserProfile {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    avatar: row.avatar,
+    bio: row.bio,
+    website: row.website,
+    username: row.username,
+    role: row.role,
+    plan: row.plan,
+    credits: row.credits,
+    totalCreditsUsed: row.total_credits_used,
+    totalGenerations: row.total_generations,
+    totalSpent: Number(row.total_spent),
+    referralCode: row.referral_code,
+    referralCreditsEarned: row.referral_credits_earned,
+    referredBy: row.referred_by,
+    instagramCredited: row.instagram_credited,
+    twitterCredited: row.twitter_credited,
+    youtubeCredited: row.youtube_credited,
+    isBanned: row.is_banned,
+    lastActiveAt: row.last_active_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 function generateReferralCode(name: string): string {
   const clean = name.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 6);
   const suffix = Math.random().toString(36).substring(2, 5).toUpperCase();
@@ -41,73 +64,87 @@ export async function createUserProfile(
   uid: string,
   data: { name: string; email: string; avatar: string; referredBy?: string }
 ) {
-  const ref = doc(db, "users", uid);
-  await setDoc(ref, {
+  const { error } = await supabase.from("users").insert({
+    id: uid,
     name: data.name,
     email: data.email,
     avatar: data.avatar,
-    bio: "",
-    website: "",
-    username: "",
-    role: "user",
-    plan: "free",
-    credits: 5, // 5 free credits on signup
-    totalCreditsUsed: 0,
-    totalGenerations: 0,
-    totalSpent: 0,
-    referralCode: generateReferralCode(data.name),
-    referralCreditsEarned: 0,
-    referredBy: data.referredBy || "",
-    instagramCredited: false,
-    twitterCredited: false,
-    youtubeCredited: false,
-    isBanned: false,
-    lastActiveAt: serverTimestamp(),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    referral_code: generateReferralCode(data.name),
+    referred_by: data.referredBy || "",
   });
+  if (error) throw error;
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
-  const ref = doc(db, "users", uid);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() } as UserProfile;
+  const { data, error } = await supabase.from("users").select("*").eq("id", uid).single();
+  if (error || !data) return null;
+  return mapRow(data);
 }
 
-export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
-  const ref = doc(db, "users", uid);
-  await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
+export async function updateUserProfile(uid: string, updates: Partial<UserProfile>) {
+  const dbUpdates: any = { updated_at: new Date().toISOString() };
+  if (updates.name !== undefined) dbUpdates.name = updates.name;
+  if (updates.email !== undefined) dbUpdates.email = updates.email;
+  if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
+  if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
+  if (updates.website !== undefined) dbUpdates.website = updates.website;
+  if (updates.username !== undefined) dbUpdates.username = updates.username;
+  if (updates.role !== undefined) dbUpdates.role = updates.role;
+  if (updates.plan !== undefined) dbUpdates.plan = updates.plan;
+  if (updates.credits !== undefined) dbUpdates.credits = updates.credits;
+  if (updates.totalCreditsUsed !== undefined) dbUpdates.total_credits_used = updates.totalCreditsUsed;
+  if (updates.totalGenerations !== undefined) dbUpdates.total_generations = updates.totalGenerations;
+  if (updates.totalSpent !== undefined) dbUpdates.total_spent = updates.totalSpent;
+  if (updates.referralCreditsEarned !== undefined) dbUpdates.referral_credits_earned = updates.referralCreditsEarned;
+  if (updates.referredBy !== undefined) dbUpdates.referred_by = updates.referredBy;
+  if (updates.instagramCredited !== undefined) dbUpdates.instagram_credited = updates.instagramCredited;
+  if (updates.twitterCredited !== undefined) dbUpdates.twitter_credited = updates.twitterCredited;
+  if (updates.youtubeCredited !== undefined) dbUpdates.youtube_credited = updates.youtubeCredited;
+  if (updates.isBanned !== undefined) dbUpdates.is_banned = updates.isBanned;
+
+  const { error } = await supabase.from("users").update(dbUpdates).eq("id", uid);
+  if (error) throw error;
 }
 
 export async function updateLastActive(uid: string) {
-  const ref = doc(db, "users", uid);
-  await updateDoc(ref, { lastActiveAt: serverTimestamp() });
+  await supabase.from("users").update({ last_active_at: new Date().toISOString() }).eq("id", uid);
 }
 
 export async function deductCredits(uid: string, amount: number): Promise<boolean> {
   const profile = await getUserProfile(uid);
   if (!profile || profile.credits < amount) return false;
-  const ref = doc(db, "users", uid);
-  await updateDoc(ref, {
-    credits: increment(-amount),
-    totalCreditsUsed: increment(amount),
-    updatedAt: serverTimestamp(),
-  });
+  const { error } = await supabase
+    .from("users")
+    .update({
+      credits: profile.credits - amount,
+      total_credits_used: profile.totalCreditsUsed + amount,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", uid);
+  if (error) return false;
   return true;
 }
 
 export async function addCredits(uid: string, amount: number) {
-  const ref = doc(db, "users", uid);
-  await updateDoc(ref, {
-    credits: increment(amount),
-    updatedAt: serverTimestamp(),
-  });
+  const profile = await getUserProfile(uid);
+  if (!profile) return;
+  const { error } = await supabase
+    .from("users")
+    .update({
+      credits: profile.credits + amount,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", uid);
+  if (error) throw error;
 }
 
 export async function incrementGenerations(uid: string) {
-  const ref = doc(db, "users", uid);
-  await updateDoc(ref, { totalGenerations: increment(1) });
+  const profile = await getUserProfile(uid);
+  if (!profile) return;
+  await supabase
+    .from("users")
+    .update({ total_generations: profile.totalGenerations + 1 })
+    .eq("id", uid);
 }
 
 export async function banUser(uid: string) {
@@ -120,45 +157,53 @@ export async function unbanUser(uid: string) {
 
 export async function getAllUsers(options: {
   limitCount?: number;
-  lastDoc?: DocumentSnapshot;
+  lastPage?: number;
   plan?: string;
   status?: string;
 } = {}) {
-  const constraints: any[] = [orderBy("createdAt", "desc")];
+  const pageSize = options.limitCount || 20;
+  const page = options.lastPage || 0;
+
+  let q = supabase.from("users").select("*").order("created_at", { ascending: false });
+
   if (options.plan && options.plan !== "all") {
-    constraints.unshift(where("plan", "==", options.plan));
+    q = q.eq("plan", options.plan);
   }
   if (options.status === "banned") {
-    constraints.unshift(where("isBanned", "==", true));
+    q = q.eq("is_banned", true);
   } else if (options.status === "active") {
-    constraints.unshift(where("isBanned", "==", false));
+    q = q.eq("is_banned", false);
   }
-  if (options.lastDoc) constraints.push(startAfter(options.lastDoc));
-  constraints.push(limit(options.limitCount || 20));
 
-  const q = query(collection(db, "users"), ...constraints);
-  const snap = await getDocs(q);
+  q = q.range(page * pageSize, (page + 1) * pageSize - 1);
+
+  const { data, error } = await q;
+  if (error) throw error;
   return {
-    users: snap.docs.map((d) => ({ id: d.id, ...d.data() } as UserProfile)),
-    lastDoc: snap.docs[snap.docs.length - 1] || null,
+    users: (data || []).map(mapRow),
+    lastPage: (data || []).length === pageSize ? page + 1 : null,
   };
 }
 
 export async function getUserByReferralCode(code: string): Promise<UserProfile | null> {
-  const q = query(collection(db, "users"), where("referralCode", "==", code), limit(1));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  return { id: snap.docs[0].id, ...snap.docs[0].data() } as UserProfile;
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("referral_code", code)
+    .limit(1)
+    .single();
+  if (error || !data) return null;
+  return mapRow(data);
 }
 
 export async function getTotalUserCount(): Promise<number> {
-  const q = query(collection(db, "users"));
-  const snap = await getDocs(q);
-  return snap.size;
+  const { count, error } = await supabase.from("users").select("*", { count: "exact", head: true });
+  if (error) return 0;
+  return count || 0;
 }
 
 export async function getProUserCount(): Promise<number> {
-  const q = query(collection(db, "users"), where("plan", "==", "pro"));
-  const snap = await getDocs(q);
-  return snap.size;
+  const { count, error } = await supabase.from("users").select("*", { count: "exact", head: true }).eq("plan", "pro");
+  if (error) return 0;
+  return count || 0;
 }

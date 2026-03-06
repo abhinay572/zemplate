@@ -1,8 +1,4 @@
-import {
-  doc, setDoc, deleteDoc, collection, query, getDocs, serverTimestamp,
-  where, limit,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 
 export interface NewsletterSubscriber {
   id: string;
@@ -11,35 +7,34 @@ export interface NewsletterSubscriber {
   createdAt: any;
 }
 
+function mapRow(row: any): NewsletterSubscriber {
+  return { id: row.id, email: row.email, name: row.name, createdAt: row.created_at };
+}
+
 export async function subscribeNewsletter(email: string, name: string = ""): Promise<void> {
-  // Use email as doc ID to prevent duplicates
   const docId = email.replace(/[^a-zA-Z0-9]/g, "_");
-  await setDoc(doc(db, "newsletter_subscribers", docId), {
-    email,
-    name,
-    createdAt: serverTimestamp(),
-  });
+  await supabase.from("newsletter_subscribers").upsert({ id: docId, email, name });
 }
 
 export async function unsubscribeNewsletter(email: string): Promise<void> {
   const docId = email.replace(/[^a-zA-Z0-9]/g, "_");
-  await deleteDoc(doc(db, "newsletter_subscribers", docId));
+  await supabase.from("newsletter_subscribers").delete().eq("id", docId);
 }
 
 export async function isSubscribed(email: string): Promise<boolean> {
   const docId = email.replace(/[^a-zA-Z0-9]/g, "_");
-  const { getDoc } = await import("firebase/firestore");
-  const snap = await getDoc(doc(db, "newsletter_subscribers", docId));
-  return snap.exists();
+  const { data } = await supabase.from("newsletter_subscribers").select("id").eq("id", docId).single();
+  return !!data;
 }
 
 export async function getAllSubscribers(): Promise<NewsletterSubscriber[]> {
-  const q = query(collection(db, "newsletter_subscribers"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as NewsletterSubscriber));
+  const { data, error } = await supabase.from("newsletter_subscribers").select("*");
+  if (error) return [];
+  return (data || []).map(mapRow);
 }
 
 export async function getSubscriberCount(): Promise<number> {
-  const snap = await getDocs(collection(db, "newsletter_subscribers"));
-  return snap.size;
+  const { count, error } = await supabase.from("newsletter_subscribers").select("*", { count: "exact", head: true });
+  if (error) return 0;
+  return count || 0;
 }

@@ -23,10 +23,10 @@ export function DashboardUsage() {
 
   useEffect(() => {
     if (!user) return;
-    getUserGenerationCount(user.uid)
+    getUserGenerationCount(user.id)
       .then(setTotalGenerations)
       .catch(console.error);
-    getWeeklyGenerationCounts(user.uid)
+    getWeeklyGenerationCounts(user.id)
       .then((data) => setWeeklyData(data.map((d) => ({ name: d.name, credits: d.count }))))
       .catch(console.error);
   }, [user]);

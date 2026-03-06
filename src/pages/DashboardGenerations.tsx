@@ -15,7 +15,7 @@ export function DashboardGenerations() {
 
   useEffect(() => {
     if (!user) return;
-    getUserGenerations(user.uid, { limitCount: 50 })
+    getUserGenerations(user.id, { limitCount: 50 })
       .then(({ generations: gens }) => setGenerations(gens))
       .catch(console.error)
       .finally(() => setIsLoading(false));
@@ -52,7 +52,7 @@ export function DashboardGenerations() {
                   </div>
                   <div className="text-center">
                     <p className="text-white text-sm font-medium truncate">{gen.templateTitle}</p>
-                    <p className="text-white/50 text-xs">{gen.createdAt?.toDate?.()?.toLocaleDateString?.() || ""}</p>
+                    <p className="text-white/50 text-xs">{gen.createdAt ? new Date(gen.createdAt).toLocaleDateString() : ""}</p>
                   </div>
                 </div>
               </motion.div>

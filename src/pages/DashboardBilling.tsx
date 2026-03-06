@@ -24,7 +24,7 @@ export function DashboardBilling() {
 
   useEffect(() => {
     if (!user) return;
-    getUserTransactions(user.uid, { limitCount: 20 })
+    getUserTransactions(user.id, { limitCount: 20 })
       .then(({ transactions: t }) => setTransactions(t))
       .catch(console.error)
       .finally(() => setIsLoading(false));
@@ -44,7 +44,7 @@ export function DashboardBilling() {
       handler: async (response: any) => {
         try {
           await createTransaction({
-            userId: user.uid,
+            userId: user.id,
             type: "credit_pack",
             description: `Purchased ${pack.credits} credits`,
             amount: pack.price,
@@ -55,9 +55,9 @@ export function DashboardBilling() {
             orderId: response.razorpay_order_id || "",
             status: "paid",
           });
-          await addCredits(user.uid, pack.credits);
+          await addCredits(user.id, pack.credits);
           await refreshProfile();
-          const { transactions: updated } = await getUserTransactions(user.uid, { limitCount: 20 });
+          const { transactions: updated } = await getUserTransactions(user.id, { limitCount: 20 });
           setTransactions(updated);
         } catch (err) {
           console.error("Payment processing failed:", err);

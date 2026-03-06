@@ -93,7 +93,7 @@ export function TemplateDetail() {
     let generationId = "";
     try {
       generationId = await createGeneration({
-        userId: user.uid,
+        userId: user.id,
         templateId: id,
         templateTitle: template.title,
         toolSlug: "template-generate",
@@ -114,7 +114,7 @@ export function TemplateDetail() {
     }
 
     try {
-      const deducted = await deductCredits(user.uid, creditCost);
+      const deducted = await deductCredits(user.id, creditCost);
       if (!deducted) {
         setError("Not enough credits.");
         setIsGenerating(false);
@@ -133,14 +133,14 @@ export function TemplateDetail() {
 
       if (!results || results.length === 0) throw new Error("No image generated. Please try again.");
 
-      const outputUrl = await uploadGeneratedImage(results[0].imageBytes, user.uid, generationId || Date.now().toString());
+      const outputUrl = await uploadGeneratedImage(results[0].imageBytes, user.id, generationId || Date.now().toString());
       const processingTime = Date.now() - startTime;
 
       if (generationId) {
         await updateGeneration(generationId, { status: "completed", outputUrl, processingTimeMs: processingTime });
       }
 
-      await incrementGenerations(user.uid);
+      await incrementGenerations(user.id);
       await incrementTemplateUsage(id);
       await refreshProfile();
 

@@ -141,7 +141,7 @@ export function ToolDetail() {
     let generationId = "";
     try {
       generationId = await createGeneration({
-        userId: user.uid,
+        userId: user.id,
         templateId: "",
         templateTitle: "",
         toolSlug: tool.toolType,
@@ -162,7 +162,7 @@ export function ToolDetail() {
     }
 
     try {
-      const deducted = await deductCredits(user.uid, config.creditCost);
+      const deducted = await deductCredits(user.id, config.creditCost);
       if (!deducted) {
         setError("Not enough credits.");
         setIsGenerating(false);
@@ -175,11 +175,11 @@ export function ToolDetail() {
       if (tool.toolType === "text-to-image") {
         const results = await generateImage(prompt, { style });
         if (results.length > 0) {
-          outputUrl = await uploadGeneratedImage(results[0].imageBytes, user.uid, generationId || Date.now().toString());
+          outputUrl = await uploadGeneratedImage(results[0].imageBytes, user.id, generationId || Date.now().toString());
         }
       } else if (tool.toolType === "face-swap" && uploadedFile && targetFile) {
-        const sourceUrl = await uploadFile(uploadedFile, `face-swap/${user.uid}/source-${Date.now()}`);
-        const targetUrl = await uploadFile(targetFile, `face-swap/${user.uid}/target-${Date.now()}`);
+        const sourceUrl = await uploadFile(uploadedFile, `face-swap/${user.id}/source-${Date.now()}`);
+        const targetUrl = await uploadFile(targetFile, `face-swap/${user.id}/target-${Date.now()}`);
         const result = await faceSwapPhoto(sourceUrl, targetUrl);
         if (result?.downloads?.[0]) {
           outputUrl = result.downloads[0];
@@ -189,7 +189,7 @@ export function ToolDetail() {
       } else if (tool.toolType === "remove-bg" && uploadedImage) {
         const result = await removeBackground(uploadedImage, false);
         if ("images" in result && result.images.length > 0) {
-          outputUrl = await uploadGeneratedImage(result.images[0].imageBytes, user.uid, generationId || Date.now().toString());
+          outputUrl = await uploadGeneratedImage(result.images[0].imageBytes, user.id, generationId || Date.now().toString());
         } else if ("outputUrl" in result) {
           outputUrl = result.outputUrl;
         }
@@ -209,7 +209,7 @@ export function ToolDetail() {
         });
       }
 
-      await incrementGenerations(user.uid);
+      await incrementGenerations(user.id);
       await refreshProfile();
 
       setResultUrl(outputUrl);

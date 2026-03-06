@@ -41,9 +41,9 @@ export function DashboardSettings() {
     try {
       let avatarUrl = profile?.avatar || "";
       if (avatarFile) {
-        avatarUrl = await uploadAvatar(user.uid, avatarFile);
+        avatarUrl = await uploadAvatar(avatarFile, user.id);
       }
-      await updateUserProfile(user.uid, { name: name.trim(), bio: bio.trim(), avatar: avatarUrl });
+      await updateUserProfile(user.id, { name: name.trim(), bio: bio.trim(), avatar: avatarUrl });
       await refreshProfile();
       setSaveMsg({ type: "success", text: "Profile saved successfully!" });
       setTimeout(() => setSaveMsg(null), 3000);

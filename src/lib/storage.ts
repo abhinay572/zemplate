@@ -1,14 +1,23 @@
-import { ref, uploadBytes, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
-import { storage } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
+import { decode } from "base64-arraybuffer";
+
+const BUCKET = "images";
+
+function getPublicUrl(path: string): string {
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
 
 // Upload a file (from input[type=file])
 export async function uploadFile(
   file: File,
   path: string
 ): Promise<string> {
-  const storageRef = ref(storage, path);
-  const snapshot = await uploadBytes(storageRef, file);
-  return getDownloadURL(snapshot.ref);
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { upsert: true });
+  if (error) throw error;
+  return getPublicUrl(path);
 }
 
 // Upload base64 image data (from AI generation results)
@@ -17,11 +26,14 @@ export async function uploadBase64Image(
   path: string,
   mimeType: string = "image/png"
 ): Promise<string> {
-  const storageRef = ref(storage, path);
-  const snapshot = await uploadString(storageRef, base64Data, "base64", {
-    contentType: mimeType,
-  });
-  return getDownloadURL(snapshot.ref);
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, decode(base64Data), {
+      contentType: mimeType,
+      upsert: true,
+    });
+  if (error) throw error;
+  return getPublicUrl(path);
 }
 
 // Upload template preview image
@@ -57,12 +69,11 @@ export async function uploadCommunityImage(file: File, postId: string): Promise<
 
 // Delete a file from storage
 export async function deleteFile(path: string): Promise<void> {
-  const storageRef = ref(storage, path);
-  await deleteObject(storageRef);
+  const { error } = await supabase.storage.from(BUCKET).remove([path]);
+  if (error) throw error;
 }
 
-// Get a download URL for a path
+// Get a public URL for a path
 export async function getFileUrl(path: string): Promise<string> {
-  const storageRef = ref(storage, path);
-  return getDownloadURL(storageRef);
+  return getPublicUrl(path);
 }

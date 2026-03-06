@@ -116,6 +116,14 @@ export async function updateAIModel(id: string, updates: Partial<AIModel>) {
   if (updates.maxPerDay !== undefined) dbUpdates.max_per_day = updates.maxPerDay;
   if (updates.maxPerUserPerDay !== undefined) dbUpdates.max_per_user_per_day = updates.maxPerUserPerDay;
   if (updates.priorityOrder !== undefined) dbUpdates.priority_order = updates.priorityOrder;
+  if (updates.supportsTextToImage !== undefined) dbUpdates.supports_text_to_image = updates.supportsTextToImage;
+  if (updates.supportsImageEditing !== undefined) dbUpdates.supports_image_editing = updates.supportsImageEditing;
+  if (updates.supportsFaceSwap !== undefined) dbUpdates.supports_face_swap = updates.supportsFaceSwap;
+  if (updates.supportsVideo !== undefined) dbUpdates.supports_video = updates.supportsVideo;
+  if (updates.supportsUpscale !== undefined) dbUpdates.supports_upscale = updates.supportsUpscale;
+  if (updates.maxResolution !== undefined) dbUpdates.max_resolution = updates.maxResolution;
+  if (updates.supportedAspectRatios !== undefined) dbUpdates.supported_aspect_ratios = updates.supportedAspectRatios;
+  if (updates.supportedStyles !== undefined) dbUpdates.supported_styles = updates.supportedStyles;
   const { error } = await supabase.from("ai_models").update(dbUpdates).eq("id", id);
   if (error) throw error;
 }

@@ -211,23 +211,18 @@ export async function getTrendingTemplates(count: number = 10): Promise<PublicTe
 }
 
 export async function searchTemplates(searchTerm: string): Promise<PublicTemplate[]> {
+  const term = searchTerm.trim();
+  if (!term) return [];
+
   const { data, error } = await supabase
     .from("templates")
     .select("*")
     .eq("status", "published")
+    .ilike("title", `%${term}%`)
     .order("usage_count", { ascending: false })
-    .limit(100);
+    .limit(50);
   if (error) throw error;
-  const term = searchTerm.toLowerCase();
-  return (data || [])
-    .map(mapRow)
-    .map(toPublic)
-    .filter(
-      (t) =>
-        t.title.toLowerCase().includes(term) ||
-        t.category.toLowerCase().includes(term) ||
-        t.tags?.some((tag: string) => tag.toLowerCase().includes(term))
-    );
+  return (data || []).map(mapRow).map(toPublic);
 }
 
 export async function getTemplateCount(): Promise<{ total: number; published: number; draft: number }> {

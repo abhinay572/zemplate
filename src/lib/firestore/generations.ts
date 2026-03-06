@@ -140,3 +140,45 @@ export async function getRecentGenerations(count: number = 10): Promise<Generati
   if (error) return [];
   return (data || []).map(mapRow);
 }
+
+export async function getWeeklyGenerationCounts(userId?: string): Promise<{ name: string; count: number }[]> {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - 6);
+  weekStart.setHours(0, 0, 0, 0);
+
+  let q = supabase
+    .from("generations")
+    .select("created_at")
+    .eq("status", "completed")
+    .gte("created_at", weekStart.toISOString());
+
+  if (userId) q = q.eq("user_id", userId);
+
+  const { data, error } = await q;
+  if (error || !data) return days.map((d) => ({ name: d, count: 0 }));
+
+  const countsByDay: Record<string, number> = {};
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - 6 + i);
+    const key = days[d.getDay()];
+    countsByDay[key] = 0;
+  }
+
+  for (const row of data) {
+    const d = new Date(row.created_at);
+    const key = days[d.getDay()];
+    if (key in countsByDay) countsByDay[key]++;
+  }
+
+  const result: { name: string; count: number }[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - 6 + i);
+    const key = days[d.getDay()];
+    result.push({ name: key, count: countsByDay[key] });
+  }
+  return result;
+}

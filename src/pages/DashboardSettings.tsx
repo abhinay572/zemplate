@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Save } from "lucide-react";
+import { Save, CheckCircle2, AlertCircle } from "lucide-react";
 import { useState, useRef } from "react";
 import { SEO } from "@/components/seo/SEO";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,29 +15,41 @@ export function DashboardSettings() {
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [saveMsg, setSaveMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onload = () => setAvatarPreview(reader.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (file.size > 800 * 1024) {
+      setSaveMsg({ type: "error", text: "Avatar must be under 800KB." });
+      return;
     }
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setAvatarPreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
     if (!user) return;
+    if (!name.trim()) {
+      setSaveMsg({ type: "error", text: "Name cannot be empty." });
+      return;
+    }
     setSaving(true);
+    setSaveMsg(null);
     try {
       let avatarUrl = profile?.avatar || "";
       if (avatarFile) {
         avatarUrl = await uploadAvatar(user.uid, avatarFile);
       }
-      await updateUserProfile(user.uid, { name, bio, avatar: avatarUrl });
+      await updateUserProfile(user.uid, { name: name.trim(), bio: bio.trim(), avatar: avatarUrl });
       await refreshProfile();
+      setSaveMsg({ type: "success", text: "Profile saved successfully!" });
+      setTimeout(() => setSaveMsg(null), 3000);
     } catch (err) {
       console.error("Failed to save profile:", err);
+      setSaveMsg({ type: "error", text: "Failed to save. Please try again." });
     } finally {
       setSaving(false);
     }
@@ -129,6 +141,12 @@ export function DashboardSettings() {
             </div>
 
             {/* Save Button */}
+            {saveMsg && (
+              <div className={`flex items-center gap-2 p-3 rounded-xl text-sm ${saveMsg.type === "success" ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border border-red-500/20 text-red-400"}`}>
+                {saveMsg.type === "success" ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                {saveMsg.text}
+              </div>
+            )}
             <div className="pt-6 border-t border-white/10 flex justify-end">
               <button
                 onClick={handleSave}

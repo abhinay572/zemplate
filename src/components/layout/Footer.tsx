@@ -1,7 +1,27 @@
 import { Link } from "react-router-dom";
-import { Twitter, Instagram, Youtube, Github, Facebook, Linkedin, Send } from "lucide-react";
+import { Twitter, Instagram, Youtube, Github, Facebook, Linkedin, Send, Check } from "lucide-react";
+import { useState } from "react";
+import { subscribeNewsletter } from "@/lib/firestore/newsletter";
 
 export function Footer() {
+  const [email, setEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+
+  const handleSubscribe = async () => {
+    if (!email || !email.includes("@")) return;
+    setSubscribing(true);
+    try {
+      await subscribeNewsletter(email);
+      setSubscribed(true);
+      setEmail("");
+    } catch {
+      // silent
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
   return (
     <footer className="w-full bg-surface border-t border-white/5 pt-16 pb-8 mt-auto">
       <div className="max-w-[1600px] mx-auto px-4 md:px-6">
@@ -13,16 +33,27 @@ export function Footer() {
             <p className="text-white/70">Join 50K+ creators getting the best AI templates delivered to their inbox.</p>
           </div>
           <div className="w-full md:w-auto flex-1 max-w-md flex items-center gap-2">
-            <div className="relative flex-1">
-              <input 
-                type="email" 
-                placeholder="Enter your email" 
-                className="w-full bg-black/40 border border-white/10 rounded-full py-3 pl-4 pr-12 text-white placeholder:text-white/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              />
-            </div>
-            <button className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-medium transition-colors flex items-center gap-2 whitespace-nowrap">
-              Subscribe <Send className="w-4 h-4" />
-            </button>
+            {subscribed ? (
+              <div className="flex items-center gap-2 text-emerald-400 font-medium">
+                <Check className="w-5 h-5" /> You're subscribed!
+              </div>
+            ) : (
+              <>
+                <div className="relative flex-1">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
+                    placeholder="Enter your email"
+                    className="w-full bg-black/40 border border-white/10 rounded-full py-3 pl-4 pr-12 text-white placeholder:text-white/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <button onClick={handleSubscribe} disabled={subscribing} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-medium transition-colors flex items-center gap-2 whitespace-nowrap disabled:opacity-50">
+                  {subscribing ? "..." : "Subscribe"} <Send className="w-4 h-4" />
+                </button>
+              </>
+            )}
           </div>
         </div>
 

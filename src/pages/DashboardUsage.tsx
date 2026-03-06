@@ -5,7 +5,7 @@ import { Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { SEO } from "@/components/seo/SEO";
 import { useAuth } from "@/contexts/AuthContext";
-import { getUserGenerationCount } from "@/lib/firestore/generations";
+import { getUserGenerationCount, getWeeklyGenerationCounts } from "@/lib/firestore/generations";
 import {
   AreaChart,
   Area,
@@ -16,24 +16,18 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const weeklyData = [
-  { name: "Mon", credits: 0 },
-  { name: "Tue", credits: 0 },
-  { name: "Wed", credits: 0 },
-  { name: "Thu", credits: 0 },
-  { name: "Fri", credits: 0 },
-  { name: "Sat", credits: 0 },
-  { name: "Sun", credits: 0 },
-];
-
 export function DashboardUsage() {
   const { user, profile } = useAuth();
   const [totalGenerations, setTotalGenerations] = useState(0);
+  const [weeklyData, setWeeklyData] = useState<{ name: string; credits: number }[]>([]);
 
   useEffect(() => {
     if (!user) return;
     getUserGenerationCount(user.uid)
       .then(setTotalGenerations)
+      .catch(console.error);
+    getWeeklyGenerationCounts(user.uid)
+      .then((data) => setWeeklyData(data.map((d) => ({ name: d.name, credits: d.count }))))
       .catch(console.error);
   }, [user]);
 

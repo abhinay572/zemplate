@@ -9,7 +9,8 @@ import { SEO } from "@/components/seo/SEO";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateImage, removeBackground, TOOL_CONFIG, type ToolType } from "@/lib/providers/router";
-import { uploadGeneratedImage } from "@/lib/storage";
+import { faceSwapPhoto } from "@/lib/providers/magichour";
+import { uploadGeneratedImage, uploadFile } from "@/lib/storage";
 import { createGeneration, updateGeneration } from "@/lib/firestore/generations";
 import { deductCredits, incrementGenerations } from "@/lib/firestore/users";
 
@@ -62,7 +63,12 @@ export function ToolDetail() {
   const [style, setStyle] = useState("Photorealistic");
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [targetImage, setTargetImage] = useState<string | null>(null);
+  const [targetFileName, setTargetFileName] = useState("");
+  const [targetFile, setTargetFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const targetInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 400);
@@ -82,11 +88,26 @@ export function ToolDetail() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadedFileName(file.name);
+    setUploadedFile(file);
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
       const base64 = result.split(",")[1];
       setUploadedImage(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleTargetUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setTargetFileName(file.name);
+    setTargetFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(",")[1];
+      setTargetImage(base64);
     };
     reader.readAsDataURL(file);
   };
@@ -106,6 +127,10 @@ export function ToolDetail() {
     }
     if (tool.needsUpload && !uploadedImage) {
       setError("Please upload an image first.");
+      return;
+    }
+    if (tool.toolType === "face-swap" && !targetImage) {
+      setError("Please upload both a source face image and a target image.");
       return;
     }
 
@@ -151,6 +176,15 @@ export function ToolDetail() {
         const results = await generateImage(prompt, { style });
         if (results.length > 0) {
           outputUrl = await uploadGeneratedImage(results[0].imageBytes, user.uid, generationId || Date.now().toString());
+        }
+      } else if (tool.toolType === "face-swap" && uploadedFile && targetFile) {
+        const sourceUrl = await uploadFile(uploadedFile, `face-swap/${user.uid}/source-${Date.now()}`);
+        const targetUrl = await uploadFile(targetFile, `face-swap/${user.uid}/target-${Date.now()}`);
+        const result = await faceSwapPhoto(sourceUrl, targetUrl);
+        if (result?.downloads?.[0]) {
+          outputUrl = result.downloads[0];
+        } else if (result?.result_url) {
+          outputUrl = result.result_url;
         }
       } else if (tool.toolType === "remove-bg" && uploadedImage) {
         const result = await removeBackground(uploadedImage, false);
@@ -319,9 +353,16 @@ export function ToolDetail() {
 
               {tool.id === 'face-swap' && (
                 <div className="space-y-4">
+                  <input ref={targetInputRef} type="file" accept="image/*" className="hidden" onChange={handleTargetUpload} />
                   <div className="p-4 rounded-xl border border-white/10 bg-black/20 text-center hover:bg-white/5 transition-colors cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
-                    <p className="text-sm text-white/60 mb-2 group-hover:text-white/80 transition-colors">{uploadedImage ? "Image uploaded" : "Upload source image"}</p>
-                    <button className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-all active:scale-95">{uploadedImage ? "Change Image" : "Select Image"}</button>
+                    <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-1">Source Face</p>
+                    <p className="text-sm text-white/60 mb-2 group-hover:text-white/80 transition-colors">{uploadedImage ? `✓ ${uploadedFileName}` : "Upload the face you want to use"}</p>
+                    <button className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-all active:scale-95">{uploadedImage ? "Change" : "Select Image"}</button>
+                  </div>
+                  <div className="p-4 rounded-xl border border-white/10 bg-black/20 text-center hover:bg-white/5 transition-colors cursor-pointer group" onClick={() => targetInputRef.current?.click()}>
+                    <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-1">Target Photo</p>
+                    <p className="text-sm text-white/60 mb-2 group-hover:text-white/80 transition-colors">{targetImage ? `✓ ${targetFileName}` : "Upload the photo to swap face into"}</p>
+                    <button className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-all active:scale-95">{targetImage ? "Change" : "Select Image"}</button>
                   </div>
                 </div>
               )}

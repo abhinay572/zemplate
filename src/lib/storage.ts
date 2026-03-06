@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { decode } from "base64-arraybuffer";
+import { compressImage } from "@/lib/imageCompress";
 
 const BUCKET = "images";
 
@@ -8,16 +9,23 @@ function getPublicUrl(path: string): string {
   return data.publicUrl;
 }
 
-// Upload a file (from input[type=file])
+// Upload a file (from input[type=file]) — compresses images automatically
 export async function uploadFile(
   file: File,
   path: string
 ): Promise<string> {
+  const compressed = await compressImage(file);
+  // Update path extension if format changed (e.g. jpg → webp)
+  const newExt = compressed.name.split(".").pop();
+  const oldExt = path.split(".").pop();
+  const finalPath = newExt && oldExt && newExt !== oldExt
+    ? path.replace(new RegExp(`\\.${oldExt}$`), `.${newExt}`)
+    : path;
   const { error } = await supabase.storage
     .from(BUCKET)
-    .upload(path, file, { upsert: true });
+    .upload(finalPath, compressed, { contentType: compressed.type, upsert: true });
   if (error) throw error;
-  return getPublicUrl(path);
+  return getPublicUrl(finalPath);
 }
 
 // Upload base64 image data (from AI generation results)

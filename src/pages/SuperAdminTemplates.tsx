@@ -93,6 +93,10 @@ export function SuperAdminTemplates() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 20 * 1024 * 1024) {
+        alert("File too large (max 20MB). Please use a smaller image.");
+        return;
+      }
       setImageFile(file);
       const reader = new FileReader();
       reader.onload = () => setPreviewImage(reader.result as string);
@@ -128,8 +132,9 @@ export function SuperAdminTemplates() {
       setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" });
       setPreviewImage(null);
       setImageFile(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to upload template:", err);
+      alert("Upload failed: " + (err.message || "Unknown error. Check console."));
     } finally {
       setUploading(false);
     }
@@ -186,8 +191,9 @@ export function SuperAdminTemplates() {
       setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" });
       setPreviewImage(null);
       setImageFile(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update template:", err);
+      alert("Update failed: " + (err.message || "Unknown error. Check console."));
     } finally {
       setUploading(false);
     }
@@ -422,6 +428,7 @@ export function SuperAdminTemplates() {
                       <div className="relative inline-block">
                         <img src={previewImage} alt="Preview" className="max-h-48 rounded-xl mx-auto" />
                         <button onClick={() => { setPreviewImage(null); setImageFile(null); }} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"><X className="w-3 h-3" /></button>
+                        {imageFile && <p className="text-white/40 text-xs mt-2">{(imageFile.size / 1024).toFixed(0)}KB — will be compressed to webp</p>}
                       </div>
                     ) : (
                       <>
@@ -509,7 +516,7 @@ export function SuperAdminTemplates() {
                     Save as Draft
                   </button>
                   <button onClick={() => (editingTemplate ? handleSaveEdit("published") : handlePublish("published"))} disabled={uploading} className="px-5 py-2.5 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all text-sm font-medium shadow-lg shadow-primary/20 disabled:opacity-50">
-                    {uploading ? "Saving..." : editingTemplate ? "Save Changes" : "Publish Template"}
+                    {uploading ? "Uploading & Saving..." : editingTemplate ? "Save Changes" : "Publish Template"}
                   </button>
                 </div>
               </div>

@@ -1,14 +1,14 @@
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { ArrowLeft, Upload, Sparkles, Zap, Image as ImageIcon, Wand2, SlidersHorizontal, CheckCircle2, Download, AlertCircle } from "lucide-react";
+import { ArrowLeft, Upload, Sparkles, Zap, Image as ImageIcon, Wand2, Palette, SlidersHorizontal, CheckCircle2, Download, AlertCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
 import { SEO } from "@/components/seo/SEO";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { useAuth } from "@/contexts/AuthContext";
-import { generateImage, removeBackground, TOOL_CONFIG, type ToolType } from "@/lib/providers/router";
+import { generateImage, generateLogo, removeBackground, TOOL_CONFIG, type ToolType } from "@/lib/providers/router";
 import { faceSwapPhoto } from "@/lib/providers/magichour";
 import { uploadGeneratedImage, uploadFile } from "@/lib/storage";
 import { createGeneration, updateGeneration } from "@/lib/firestore/generations";
@@ -44,6 +44,16 @@ const TOOLS = [
     color: "from-emerald-500 to-teal-500",
     needsUpload: true,
     needsPrompt: false,
+  },
+  {
+    id: "logo-maker",
+    toolType: "logo-maker" as ToolType,
+    title: "AI Logo Maker",
+    description: "Design unique logos for your brand in minutes.",
+    icon: Palette,
+    color: "from-lime-500 to-green-500",
+    needsUpload: false,
+    needsPrompt: true,
   },
 ];
 
@@ -187,6 +197,11 @@ export function ToolDetail() {
           outputUrl = result.downloads[0];
         } else if (result?.result_url) {
           outputUrl = result.result_url;
+        }
+      } else if (tool.toolType === "logo-maker" && prompt.trim()) {
+        const results = await generateLogo(prompt);
+        if (results.length > 0) {
+          outputUrl = await uploadGeneratedImage(results[0].imageBytes, user.id, generationId || Date.now().toString());
         }
       } else if (tool.toolType === "remove-bg" && uploadedImage) {
         const result = await removeBackground(uploadedImage, false);
@@ -349,6 +364,15 @@ export function ToolDetail() {
                       <option>3D Render</option>
                       <option>Digital Art</option>
                     </select>
+                  </div>
+                </div>
+              )}
+
+              {tool.id === 'logo-maker' && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white/70">Brand Description</label>
+                    <textarea className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white placeholder:text-white/30 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none h-32 transition-colors" placeholder="Describe your brand, business name, and style preferences... e.g. 'A modern tech startup called NovaPay, fintech, clean and minimal'" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
                   </div>
                 </div>
               )}

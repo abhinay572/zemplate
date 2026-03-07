@@ -1,5 +1,8 @@
 import { supabase } from "@/lib/supabase";
 
+const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY;
+const BREVO_LIST_ID = Number(import.meta.env.VITE_BREVO_LIST_ID) || 2;
+
 export interface NewsletterSubscriber {
   id: string;
   email: string;
@@ -11,9 +14,34 @@ function mapRow(row: any): NewsletterSubscriber {
   return { id: row.id, email: row.email, name: row.name, createdAt: row.created_at };
 }
 
+async function addToBrevo(email: string, name: string): Promise<void> {
+  if (!BREVO_API_KEY) return;
+  try {
+    await fetch("https://api.brevo.com/v3/contacts", {
+      method: "POST",
+      headers: {
+        "api-key": BREVO_API_KEY,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        attributes: { FIRSTNAME: name || undefined },
+        listIds: [BREVO_LIST_ID],
+        updateEnabled: true,
+      }),
+    });
+  } catch (err) {
+    console.error("Brevo subscription failed:", err);
+  }
+}
+
 export async function subscribeNewsletter(email: string, name: string = ""): Promise<void> {
   const docId = email.replace(/[^a-zA-Z0-9]/g, "_");
-  await supabase.from("newsletter_subscribers").upsert({ id: docId, email, name });
+  await Promise.all([
+    supabase.from("newsletter_subscribers").upsert({ id: docId, email, name }),
+    addToBrevo(email, name),
+  ]);
 }
 
 export async function unsubscribeNewsletter(email: string): Promise<void> {

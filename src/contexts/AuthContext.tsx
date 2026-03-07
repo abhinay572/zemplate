@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { createUserProfile, getUserProfile, getUserByReferralCode, addCredits, updateUserProfile, type UserProfile } from "@/lib/firestore/users";
 import type { User } from "@supabase/supabase-js";
@@ -131,10 +131,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [user]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await supabase.auth.signOut();
+    setUser(null);
     setProfile(null);
-  };
+  }, []);
 
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id);

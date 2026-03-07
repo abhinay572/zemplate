@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
   Image as ImageIcon,
@@ -30,6 +30,7 @@ const SIDEBAR_LINKS = [
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { profile, logout } = useAuth();
 
   return (
@@ -78,7 +79,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             Settings
           </Link>
           <button
-            onClick={() => logout()}
+            onClick={async () => { await logout(); navigate("/"); }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-red-400/10 transition-all active:scale-95 group"
           >
             <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />

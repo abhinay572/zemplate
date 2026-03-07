@@ -23,6 +23,7 @@ import { DashboardBilling } from "./pages/DashboardBilling";
 import { DashboardSettings } from "./pages/DashboardSettings";
 import { DashboardReferrals } from "./pages/DashboardReferrals";
 import { DashboardUsage } from "./pages/DashboardUsage";
+import { DashboardSupport } from "./pages/DashboardSupport";
 import { ToolDetail } from "./pages/ToolDetail";
 import { Category } from "./pages/Category";
 import { Legal } from "./pages/Legal";
@@ -73,6 +74,7 @@ function AnimatedRoutes() {
           <Route path="/dashboard/profile" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
           <Route path="/dashboard/referrals" element={<ProtectedRoute><DashboardReferrals /></ProtectedRoute>} />
           <Route path="/dashboard/usage" element={<ProtectedRoute><DashboardUsage /></ProtectedRoute>} />
+          <Route path="/dashboard/support" element={<ProtectedRoute><DashboardSupport /></ProtectedRoute>} />
           <Route path="/dashboard/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
           {/* Super Admin Routes (Admin only - hidden behind secret path) */}

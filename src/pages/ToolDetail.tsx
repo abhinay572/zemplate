@@ -178,8 +178,10 @@ export function ToolDetail() {
           outputUrl = await uploadGeneratedImage(results[0].imageBytes, user.id, generationId || Date.now().toString());
         }
       } else if (tool.toolType === "face-swap" && uploadedFile && targetFile) {
-        const sourceUrl = await uploadFile(uploadedFile, `face-swap/${user.id}/source-${Date.now()}`);
-        const targetUrl = await uploadFile(targetFile, `face-swap/${user.id}/target-${Date.now()}`);
+        const sourceExt = uploadedFile.name.split(".").pop() || "png";
+        const targetExt = targetFile.name.split(".").pop() || "png";
+        const sourceUrl = await uploadFile(uploadedFile, `face-swap/${user.id}/source-${Date.now()}.${sourceExt}`);
+        const targetUrl = await uploadFile(targetFile, `face-swap/${user.id}/target-${Date.now()}.${targetExt}`);
         const result = await faceSwapPhoto(sourceUrl, targetUrl);
         if (result?.downloads?.[0]) {
           outputUrl = result.downloads[0];

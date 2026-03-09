@@ -45,6 +45,8 @@ export function TemplateGrid() {
   const [isLoading, setIsLoading] = useState(true);
   const [trending, setTrending] = useState<PublicTemplate[]>([]);
   const [regular, setRegular] = useState<PublicTemplate[]>([]);
+  const [nextPage, setNextPage] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -54,10 +56,25 @@ export function TemplateGrid() {
       .then(([trendingResult, publicResult]) => {
         setTrending(trendingResult);
         setRegular(publicResult.templates);
+        setNextPage(publicResult.lastPage);
       })
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, []);
+
+  const handleLoadMore = async () => {
+    if (nextPage === null || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const result = await getPublicTemplates({ limitCount: 20, lastPage: nextPage });
+      setRegular((prev) => [...prev, ...result.templates]);
+      setNextPage(result.lastPage);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // Fall back to mock data when Firestore is empty
   const trendingTemplates = trending.length > 0
@@ -143,10 +160,10 @@ export function TemplateGrid() {
       </div>
 
       {/* Load More */}
-      {!isLoading && (
+      {!isLoading && nextPage !== null && (
         <div className="mt-16 flex justify-center">
-          <button className="px-8 py-3 rounded-full bg-surface border border-white/10 text-white/90 font-medium hover:bg-white/5 hover:border-white/20 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95">
-            Load More Templates
+          <button onClick={handleLoadMore} disabled={loadingMore} className="px-8 py-3 rounded-full bg-surface border border-white/10 text-white/90 font-medium hover:bg-white/5 hover:border-white/20 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95 disabled:opacity-50">
+            {loadingMore ? "Loading..." : "Load More Templates"}
           </button>
         </div>
       )}

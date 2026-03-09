@@ -14,18 +14,31 @@ export async function uploadFile(
   file: File,
   path: string
 ): Promise<string> {
-  const compressed = await compressImage(file);
+  let compressed: File;
+  try {
+    compressed = await compressImage(file);
+  } catch {
+    // If compression fails, use original file
+    compressed = file;
+  }
   // Update path extension if format changed (e.g. jpg → webp)
   const newExt = compressed.name.split(".").pop();
   const oldExt = path.split(".").pop();
   const finalPath = newExt && oldExt && newExt !== oldExt
     ? path.replace(new RegExp(`\\.${oldExt}$`), `.${newExt}`)
     : path;
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(finalPath, compressed, { contentType: compressed.type, upsert: true });
-  if (error) throw error;
-  return getPublicUrl(finalPath);
+
+  // Retry upload up to 3 times
+  let lastError: any;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(finalPath, compressed, { contentType: compressed.type, upsert: true });
+    if (!error) return getPublicUrl(finalPath);
+    lastError = error;
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+  }
+  throw lastError;
 }
 
 // Upload base64 image data (from AI generation results)
@@ -47,7 +60,8 @@ export async function uploadBase64Image(
 // Upload template preview image
 export async function uploadTemplateImage(file: File, templateId: string): Promise<string> {
   const ext = file.name.split(".").pop() || "png";
-  const path = `templates/${templateId}/preview.${ext}`;
+  const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const path = `templates/${templateId}/preview-${uniqueSuffix}.${ext}`;
   return uploadFile(file, path);
 }
 

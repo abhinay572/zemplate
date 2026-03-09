@@ -75,7 +75,7 @@ export function SuperAdminTemplates() {
   const bulkFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    getAdminTemplates()
+    getAdminTemplates({ limitCount: 1000 })
       .then(({ templates: t }) => setTemplates(t))
       .catch(console.error)
       .finally(() => setIsLoading(false));
@@ -199,31 +199,41 @@ export function SuperAdminTemplates() {
     }
   };
 
-  const handleBulkFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBulkFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const newItems: BulkItem[] = [];
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const titleFromFile = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-        newItems.push({
-          file,
-          preview: reader.result as string,
-          title: titleFromFile,
-          hiddenPrompt: "",
-          category: bulkDefaults.category,
-          model: bulkDefaults.model,
-          creditCost: bulkDefaults.creditCost,
-          aspectRatio: bulkDefaults.aspectRatio,
-          tags: "",
-          status: "pending",
-        });
-        if (newItems.length === files.length) {
-          setBulkItems((prev) => [...prev, ...newItems]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    if (files.length === 0) return;
+
+    const readFile = (file: File): Promise<BulkItem> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const titleFromFile = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+          resolve({
+            file,
+            preview: reader.result as string,
+            title: titleFromFile,
+            hiddenPrompt: "",
+            category: bulkDefaults.category,
+            model: bulkDefaults.model,
+            creditCost: bulkDefaults.creditCost,
+            aspectRatio: bulkDefaults.aspectRatio,
+            tags: "",
+            status: "pending",
+          });
+        };
+        reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+        reader.readAsDataURL(file);
+      });
+    };
+
+    // Process in batches of 20 to avoid memory issues with large selections
+    const batchSize = 20;
+    for (let i = 0; i < files.length; i += batchSize) {
+      const batch = files.slice(i, i + batchSize);
+      const items = await Promise.all(batch.map(readFile));
+      setBulkItems((prev) => [...prev, ...items]);
+    }
+
     if (e.target) e.target.value = "";
   };
 
@@ -235,18 +245,15 @@ export function SuperAdminTemplates() {
     setBulkItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleBulkPublish = async () => {
-    const pending = bulkItems.filter((item) => item.status === "pending" && item.title && item.hiddenPrompt && item.category);
-    if (pending.length === 0) return;
-    setBulkUploading(true);
+  const uploadSingleItem = async (i: number) => {
+    const item = bulkItems[i];
+    if (item.status !== "pending" || !item.title || !item.hiddenPrompt || !item.category) return;
 
-    for (let i = 0; i < bulkItems.length; i++) {
-      const item = bulkItems[i];
-      if (item.status !== "pending" || !item.title || !item.hiddenPrompt || !item.category) continue;
-
-      updateBulkItem(i, { status: "uploading" });
+    updateBulkItem(i, { status: "uploading" });
+    const maxRetries = 2;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const slug = item.title.toLowerCase().replace(/\s+/g, "-");
+        const slug = `${item.title.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}-${i}`;
         const imageUrl = await uploadTemplateImage(item.file, slug);
         await createTemplate({
           title: item.title,
@@ -263,12 +270,33 @@ export function SuperAdminTemplates() {
           authorAvatar: "",
         });
         updateBulkItem(i, { status: "done" });
+        return;
       } catch (err: any) {
-        updateBulkItem(i, { status: "error", error: err.message || "Upload failed" });
+        if (attempt === maxRetries) {
+          updateBulkItem(i, { status: "error", error: err.message || "Upload failed" });
+        } else {
+          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        }
       }
     }
+  };
 
-    const { templates: updated } = await getAdminTemplates();
+  const handleBulkPublish = async () => {
+    const pendingIndices = bulkItems
+      .map((item, i) => ({ item, i }))
+      .filter(({ item }) => item.status === "pending" && item.title && item.hiddenPrompt && item.category)
+      .map(({ i }) => i);
+    if (pendingIndices.length === 0) return;
+    setBulkUploading(true);
+
+    // Process 5 uploads concurrently for speed
+    const concurrency = 5;
+    for (let start = 0; start < pendingIndices.length; start += concurrency) {
+      const batch = pendingIndices.slice(start, start + concurrency);
+      await Promise.all(batch.map((i) => uploadSingleItem(i)));
+    }
+
+    const { templates: updated } = await getAdminTemplates({ limitCount: 1000 });
     setTemplates(updated);
     setBulkUploading(false);
   };

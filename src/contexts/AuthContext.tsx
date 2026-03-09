@@ -132,7 +132,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Sign out API error:", err);
+    }
+    // Always clear local state even if the API call fails
     setUser(null);
     setProfile(null);
   }, []);

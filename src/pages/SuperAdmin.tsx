@@ -26,31 +26,25 @@ import {
 } from "recharts";
 import { getTotalUserCount } from "@/lib/firestore/users";
 import { getTemplateCount } from "@/lib/firestore/templates";
-import { getRecentGenerations } from "@/lib/firestore/generations";
+import { getRecentGenerations, getWeeklyGenerationCounts } from "@/lib/firestore/generations";
 import { getEnabledModels } from "@/lib/firestore/aiModels";
 import { adminPath } from "@/lib/admin";
-
-const weeklyData = [
-  { name: "Mon", generations: 0 },
-  { name: "Tue", generations: 0 },
-  { name: "Wed", generations: 0 },
-  { name: "Thu", generations: 0 },
-  { name: "Fri", generations: 0 },
-  { name: "Sat", generations: 0 },
-  { name: "Sun", generations: 0 },
-];
 
 export function SuperAdmin() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [templateCount, setTemplateCount] = useState(0);
   const [enabledModels, setEnabledModels] = useState(0);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [weeklyData, setWeeklyData] = useState<{ name: string; generations: number }[]>([]);
 
   useEffect(() => {
     getTotalUserCount().then(setTotalUsers).catch(console.error);
     getTemplateCount().then((counts) => setTemplateCount(counts.total)).catch(console.error);
     getEnabledModels().then((models) => setEnabledModels(models.length)).catch(console.error);
     getRecentGenerations(6).then(setRecentActivity).catch(console.error);
+    getWeeklyGenerationCounts()
+      .then((data) => setWeeklyData(data.map((d) => ({ name: d.name, generations: d.count }))))
+      .catch(console.error);
   }, []);
 
   return (

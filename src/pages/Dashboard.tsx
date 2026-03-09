@@ -15,7 +15,7 @@ export function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
-    getUserGenerations(user.uid, { limitCount: 4 })
+    getUserGenerations(user.id, { limitCount: 4 })
       .then(({ generations }) => setRecentGens(generations))
       .catch(console.error)
       .finally(() => setIsLoading(false));

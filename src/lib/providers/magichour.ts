@@ -40,10 +40,10 @@ async function pollForResult(
 
 // Face Swap — Photo
 export async function faceSwapPhoto(sourceImageUrl: string, targetImageUrl: string) {
-  const result = await magicHourFetch("/face-swap", {
+  const result = await magicHourFetch("/face-swap/photo", {
     assets: {
-      source_image: sourceImageUrl,
-      target_image: targetImageUrl,
+      source_file_path: sourceImageUrl,
+      target_file_path: targetImageUrl,
     },
   });
   return pollForResult(result.id);

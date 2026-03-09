@@ -1,23 +1,78 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Link } from "react-router-dom";
 import { Zap, CheckCircle2, FileText, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { SEO } from "@/components/seo/SEO";
 import { useAuth } from "@/contexts/AuthContext";
-import { getUserTransactions, type Transaction } from "@/lib/firestore/transactions";
+import { getUserTransactions, createTransaction, type Transaction } from "@/lib/firestore/transactions";
+import { addCredits } from "@/lib/firestore/users";
+
+const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID;
+
+const CREDIT_PACKS = [
+  { credits: 10, price: 99, label: "₹99", popular: false },
+  { credits: 50, price: 399, label: "₹399", popular: true },
+  { credits: 150, price: 999, label: "₹999", popular: false },
+];
 
 export function DashboardBilling() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    getUserTransactions(user.uid, { limitCount: 20 })
+    getUserTransactions(user.id, { limitCount: 20 })
       .then(({ transactions: t }) => setTransactions(t))
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, [user]);
+
+  const handlePurchase = (pack: typeof CREDIT_PACKS[0]) => {
+    if (!user || !RAZORPAY_KEY || purchasing) return;
+    setPurchasing(true);
+
+    const options = {
+      key: RAZORPAY_KEY,
+      amount: pack.price * 100,
+      currency: "INR",
+      name: "Zemplate.ai",
+      description: `${pack.credits} Credits`,
+      prefill: { email: user.email || "" },
+      handler: async (response: any) => {
+        try {
+          await createTransaction({
+            userId: user.id,
+            type: "credit_pack",
+            description: `Purchased ${pack.credits} credits`,
+            amount: pack.price,
+            credits: pack.credits,
+            currency: "INR",
+            paymentProvider: "razorpay",
+            paymentId: response.razorpay_payment_id || "",
+            orderId: response.razorpay_order_id || "",
+            status: "paid",
+          });
+          await addCredits(user.id, pack.credits);
+          await refreshProfile();
+          const { transactions: updated } = await getUserTransactions(user.id, { limitCount: 20 });
+          setTransactions(updated);
+        } catch (err) {
+          console.error("Payment processing failed:", err);
+        } finally {
+          setPurchasing(false);
+        }
+      },
+      modal: {
+        ondismiss: () => setPurchasing(false),
+      },
+    };
+
+    const rzp = new (window as any).Razorpay(options);
+    rzp.open();
+  };
 
   const credits = profile?.credits ?? 0;
   const plan = profile?.plan || "free";
@@ -57,9 +112,9 @@ export function DashboardBilling() {
                 </li>
               </ul>
               <div className="flex gap-3">
-                <button className="flex-1 py-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors">
+                <Link to="/pricing" className="flex-1 py-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors text-center">
                   Manage Plan
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -84,14 +139,12 @@ export function DashboardBilling() {
           <div>
             <h2 className="text-2xl font-display font-bold text-white mb-6">Quick Recharge</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { credits: 10, price: "₹99", popular: false },
-                { credits: 50, price: "₹399", popular: true },
-                { credits: 150, price: "₹999", popular: false },
-              ].map((pack) => (
+              {CREDIT_PACKS.map((pack) => (
                 <button
                   key={pack.credits}
-                  className={`relative p-6 rounded-2xl border transition-all text-left ${
+                  onClick={() => handlePurchase(pack)}
+                  disabled={purchasing}
+                  className={`relative p-6 rounded-2xl border transition-all text-left disabled:opacity-50 ${
                     pack.popular
                       ? "bg-primary/10 border-primary shadow-[0_0_20px_rgba(124,58,237,0.2)] hover:shadow-[0_0_30px_rgba(124,58,237,0.3)]"
                       : "bg-surface border-white/10 hover:border-white/30"
@@ -107,7 +160,7 @@ export function DashboardBilling() {
                     <span className="text-2xl font-bold text-white">{pack.credits}</span>
                   </div>
                   <div className="text-white/60 text-sm mb-4">Credits</div>
-                  <div className="text-xl font-bold text-white">{pack.price}</div>
+                  <div className="text-xl font-bold text-white">{pack.label}</div>
                 </button>
               ))}
             </div>
@@ -139,15 +192,15 @@ export function DashboardBilling() {
                     <tr><td colSpan={5} className="p-8 text-center text-white/40">Loading...</td></tr>
                   ) : transactions.length > 0 ? transactions.map((tx) => (
                     <tr key={tx.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                      <td className="p-4 text-sm text-white/80">{tx.createdAt?.toDate?.()?.toLocaleDateString?.() || ""}</td>
-                      <td className="p-4 text-sm text-white/80">{tx.description || `${tx.creditsPurchased} Credits`}</td>
+                      <td className="p-4 text-sm text-white/80">{tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : ""}</td>
+                      <td className="p-4 text-sm text-white/80">{tx.description || `${tx.credits} Credits`}</td>
                       <td className="p-4 text-sm font-medium text-white">₹{tx.amount}</td>
                       <td className="p-4 text-sm">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                          tx.status === "success" ? "bg-emerald-500/10 text-emerald-400" : "bg-yellow-500/10 text-yellow-400"
+                          tx.status === "paid" ? "bg-emerald-500/10 text-emerald-400" : "bg-yellow-500/10 text-yellow-400"
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${tx.status === "success" ? "bg-emerald-400" : "bg-yellow-400"}`}></span>
-                          {tx.status === "success" ? "Paid" : tx.status}
+                          <span className={`w-1.5 h-1.5 rounded-full ${tx.status === "paid" ? "bg-emerald-400" : "bg-yellow-400"}`}></span>
+                          {tx.status === "paid" ? "Paid" : tx.status}
                         </span>
                       </td>
                       <td className="p-4 text-right">

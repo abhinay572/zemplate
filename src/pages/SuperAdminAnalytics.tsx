@@ -2,7 +2,6 @@ import { Navbar } from "@/components/layout/Navbar";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import {
   TrendingUp,
-  TrendingDown,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
@@ -25,12 +24,19 @@ import { getTotalRevenue } from "@/lib/firestore/transactions";
 import { getTotalUserCount } from "@/lib/firestore/users";
 import { getToolUsageStats } from "@/lib/firestore/toolUsage";
 
-const providerBreakdown = [
-  { name: "Gemini", value: 65, color: "#3B82F6" },
-  { name: "Magic Hour", value: 18, color: "#8B5CF6" },
-  { name: "Replicate", value: 12, color: "#F59E0B" },
-  { name: "Imagen", value: 5, color: "#6366F1" },
-];
+const PROVIDER_COLORS: Record<string, string> = {
+  gemini: "#3B82F6",
+  imagen: "#6366F1",
+  magichour: "#8B5CF6",
+  replicate: "#F59E0B",
+};
+
+const PROVIDER_NAMES: Record<string, string> = {
+  gemini: "Gemini",
+  imagen: "Imagen",
+  magichour: "Magic Hour",
+  replicate: "Replicate",
+};
 
 export function SuperAdminAnalytics() {
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -43,8 +49,31 @@ export function SuperAdminAnalytics() {
     getToolUsageStats().then(setToolStats).catch(console.error);
   }, []);
 
+  // Compute provider breakdown from real tool stats
+  const providerBreakdown = (() => {
+    const providerCalls: Record<string, number> = {};
+    const totalCalls = toolStats.reduce((sum, t) => sum + (t.totalCalls || 0), 0);
+    for (const t of toolStats) {
+      const provider = t.provider || "gemini";
+      providerCalls[provider] = (providerCalls[provider] || 0) + (t.totalCalls || 0);
+    }
+    if (totalCalls === 0) {
+      return [
+        { name: "Gemini", value: 25, color: "#3B82F6" },
+        { name: "Imagen", value: 25, color: "#6366F1" },
+        { name: "Magic Hour", value: 25, color: "#8B5CF6" },
+        { name: "Replicate", value: 25, color: "#F59E0B" },
+      ];
+    }
+    return Object.entries(providerCalls).map(([key, calls]) => ({
+      name: PROVIDER_NAMES[key] || key,
+      value: Math.round((calls / totalCalls) * 100),
+      color: PROVIDER_COLORS[key] || "#666",
+    }));
+  })();
+
   const userGrowthData = [
-    { month: "Users", users: totalUsers },
+    { month: "Total Users", users: totalUsers },
   ];
 
   return (
@@ -72,7 +101,7 @@ export function SuperAdminAnalytics() {
                 <p className="text-white/50 text-xs font-medium uppercase tracking-wider mb-1">{stat.label}</p>
                 <p className="text-2xl font-bold text-white">{stat.value}</p>
                 <span className={`text-xs font-medium flex items-center gap-1 mt-1 ${stat.up ? "text-emerald-400" : "text-red-400"}`}>
-                  {stat.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  <TrendingUp className="w-3 h-3" />
                   {stat.change}
                 </span>
               </div>

@@ -12,8 +12,12 @@ import {
   Copy,
   X,
   ChevronDown,
+  FileUp,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { SEO } from "@/components/seo/SEO";
 import { getAdminTemplates, createTemplate, deleteTemplate, updateTemplate, type Template } from "@/lib/firestore/templates";
@@ -35,6 +39,20 @@ interface UploadFormData {
   tags: string;
 }
 
+interface BulkItem {
+  file: File;
+  preview: string;
+  title: string;
+  hiddenPrompt: string;
+  category: string;
+  model: string;
+  creditCost: number;
+  aspectRatio: string;
+  tags: string;
+  status: "pending" | "uploading" | "done" | "error";
+  error?: string;
+}
+
 export function SuperAdminTemplates() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,6 +68,11 @@ export function SuperAdminTemplates() {
     title: "", category: "", hiddenPrompt: "", model: "nano-banana",
     creditCost: 1, aspectRatio: "1:1", tags: "",
   });
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkItems, setBulkItems] = useState<BulkItem[]>([]);
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkDefaults, setBulkDefaults] = useState({ category: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1" });
+  const bulkFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getAdminTemplates()
@@ -70,6 +93,10 @@ export function SuperAdminTemplates() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 20 * 1024 * 1024) {
+        alert("File too large (max 20MB). Please use a smaller image.");
+        return;
+      }
       setImageFile(file);
       const reader = new FileReader();
       reader.onload = () => setPreviewImage(reader.result as string);
@@ -105,8 +132,9 @@ export function SuperAdminTemplates() {
       setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" });
       setPreviewImage(null);
       setImageFile(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to upload template:", err);
+      alert("Upload failed: " + (err.message || "Unknown error. Check console."));
     } finally {
       setUploading(false);
     }
@@ -163,12 +191,91 @@ export function SuperAdminTemplates() {
       setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" });
       setPreviewImage(null);
       setImageFile(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update template:", err);
+      alert("Update failed: " + (err.message || "Unknown error. Check console."));
     } finally {
       setUploading(false);
     }
   };
+
+  const handleBulkFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const newItems: BulkItem[] = [];
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const titleFromFile = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        newItems.push({
+          file,
+          preview: reader.result as string,
+          title: titleFromFile,
+          hiddenPrompt: "",
+          category: bulkDefaults.category,
+          model: bulkDefaults.model,
+          creditCost: bulkDefaults.creditCost,
+          aspectRatio: bulkDefaults.aspectRatio,
+          tags: "",
+          status: "pending",
+        });
+        if (newItems.length === files.length) {
+          setBulkItems((prev) => [...prev, ...newItems]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    if (e.target) e.target.value = "";
+  };
+
+  const updateBulkItem = (index: number, updates: Partial<BulkItem>) => {
+    setBulkItems((prev) => prev.map((item, i) => i === index ? { ...item, ...updates } : item));
+  };
+
+  const removeBulkItem = (index: number) => {
+    setBulkItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleBulkPublish = async () => {
+    const pending = bulkItems.filter((item) => item.status === "pending" && item.title && item.hiddenPrompt && item.category);
+    if (pending.length === 0) return;
+    setBulkUploading(true);
+
+    for (let i = 0; i < bulkItems.length; i++) {
+      const item = bulkItems[i];
+      if (item.status !== "pending" || !item.title || !item.hiddenPrompt || !item.category) continue;
+
+      updateBulkItem(i, { status: "uploading" });
+      try {
+        const slug = item.title.toLowerCase().replace(/\s+/g, "-");
+        const imageUrl = await uploadTemplateImage(item.file, slug);
+        await createTemplate({
+          title: item.title,
+          category: item.category,
+          hiddenPrompt: item.hiddenPrompt,
+          model: item.model,
+          modelSlug: item.model,
+          creditCost: item.creditCost,
+          aspectRatio: item.aspectRatio,
+          tags: item.tags.split(",").map((t) => t.trim()).filter(Boolean),
+          imageUrl,
+          status: "published",
+          authorName: "Admin",
+          authorAvatar: "",
+        });
+        updateBulkItem(i, { status: "done" });
+      } catch (err: any) {
+        updateBulkItem(i, { status: "error", error: err.message || "Upload failed" });
+      }
+    }
+
+    const { templates: updated } = await getAdminTemplates();
+    setTemplates(updated);
+    setBulkUploading(false);
+  };
+
+  const bulkDoneCount = bulkItems.filter((i) => i.status === "done").length;
+  const bulkErrorCount = bulkItems.filter((i) => i.status === "error").length;
+  const bulkReadyCount = bulkItems.filter((i) => i.status === "pending" && i.title && i.hiddenPrompt && i.category).length;
 
   const filteredTemplates = templates.filter((t) => {
     const matchesCategory = activeCategory === "All" || t.category === activeCategory;
@@ -190,9 +297,14 @@ export function SuperAdminTemplates() {
               <h1 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Templates</h1>
               <p className="text-white/60">Upload templates with hidden prompts. Users never see the prompt.</p>
             </div>
-            <button onClick={() => { setEditingTemplate(null); setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" }); setPreviewImage(null); setImageFile(null); setShowUploadModal(true); }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-primary/20">
-              <Plus className="w-5 h-5" /> Upload Template
-            </button>
+            <div className="flex gap-3">
+              <button onClick={() => { setBulkItems([]); setShowBulkModal(true); }} className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2">
+                <FileUp className="w-5 h-5" /> Bulk Upload
+              </button>
+              <button onClick={() => { setEditingTemplate(null); setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" }); setPreviewImage(null); setImageFile(null); setShowUploadModal(true); }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-primary/20">
+                <Plus className="w-5 h-5" /> Upload Template
+              </button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -316,6 +428,7 @@ export function SuperAdminTemplates() {
                       <div className="relative inline-block">
                         <img src={previewImage} alt="Preview" className="max-h-48 rounded-xl mx-auto" />
                         <button onClick={() => { setPreviewImage(null); setImageFile(null); }} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"><X className="w-3 h-3" /></button>
+                        {imageFile && <p className="text-white/40 text-xs mt-2">{(imageFile.size / 1024).toFixed(0)}KB — will be compressed to webp</p>}
                       </div>
                     ) : (
                       <>
@@ -403,9 +516,134 @@ export function SuperAdminTemplates() {
                     Save as Draft
                   </button>
                   <button onClick={() => (editingTemplate ? handleSaveEdit("published") : handlePublish("published"))} disabled={uploading} className="px-5 py-2.5 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all text-sm font-medium shadow-lg shadow-primary/20 disabled:opacity-50">
-                    {uploading ? "Saving..." : editingTemplate ? "Save Changes" : "Publish Template"}
+                    {uploading ? "Uploading & Saving..." : editingTemplate ? "Save Changes" : "Publish Template"}
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk Upload Modal */}
+      <AnimatePresence>
+        {showBulkModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !bulkUploading && setShowBulkModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} onClick={(e) => e.stopPropagation()} className="bg-surface border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-white/10">
+                <div>
+                  <h2 className="text-xl font-bold text-white">Bulk Upload Templates</h2>
+                  <p className="text-white/50 text-sm mt-1">Select multiple images, add prompts for each, then publish all at once.</p>
+                </div>
+                <button onClick={() => !bulkUploading && setShowBulkModal(false)} className="p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Defaults */}
+                <div className="bg-background rounded-2xl p-4 space-y-4">
+                  <p className="text-sm font-medium text-white/80">Default settings for new items</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="text-xs text-white/50 block mb-1">Category</label>
+                      <select value={bulkDefaults.category} onChange={(e) => setBulkDefaults({ ...bulkDefaults, category: e.target.value })} className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-white text-sm appearance-none focus:outline-none focus:border-primary">
+                        <option value="">Select</option>
+                        {CATEGORIES.filter((c) => c !== "All").map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/50 block mb-1">Model</label>
+                      <select value={bulkDefaults.model} onChange={(e) => setBulkDefaults({ ...bulkDefaults, model: e.target.value })} className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-white text-sm appearance-none focus:outline-none focus:border-primary">
+                        <option value="nano-banana">Nano Banana</option>
+                        <option value="nano-banana-pro">Nano Banana Pro</option>
+                        <option value="nano-banana-2">Nano Banana 2</option>
+                        <option value="imagen-3">Imagen 3</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/50 block mb-1">Credits</label>
+                      <select value={bulkDefaults.creditCost} onChange={(e) => setBulkDefaults({ ...bulkDefaults, creditCost: Number(e.target.value) })} className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-white text-sm appearance-none focus:outline-none focus:border-primary">
+                        <option value={1}>1 Credit</option>
+                        <option value={2}>2 Credits</option>
+                        <option value={3}>3 Credits</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/50 block mb-1">Aspect Ratio</label>
+                      <select value={bulkDefaults.aspectRatio} onChange={(e) => setBulkDefaults({ ...bulkDefaults, aspectRatio: e.target.value })} className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-white text-sm appearance-none focus:outline-none focus:border-primary">
+                        <option value="1:1">1:1 Square</option>
+                        <option value="3:4">3:4 Portrait</option>
+                        <option value="4:3">4:3 Landscape</option>
+                        <option value="9:16">9:16 Story</option>
+                        <option value="16:9">16:9 Widescreen</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Add Images */}
+                <div className="border-2 border-dashed border-white/10 rounded-2xl p-6 text-center hover:border-primary/30 transition-colors">
+                  <Upload className="w-8 h-8 text-white/30 mx-auto mb-2" />
+                  <p className="text-white/60 text-sm mb-3">Select multiple images at once</p>
+                  <label className="inline-block bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-colors cursor-pointer">
+                    Browse Images
+                    <input ref={bulkFileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleBulkFiles} />
+                  </label>
+                </div>
+
+                {/* Items List */}
+                {bulkItems.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-white/60">{bulkItems.length} template{bulkItems.length > 1 ? "s" : ""} — {bulkReadyCount} ready, {bulkDoneCount} done{bulkErrorCount > 0 ? `, ${bulkErrorCount} failed` : ""}</p>
+                    </div>
+                    {bulkItems.map((item, index) => (
+                      <div key={index} className={`bg-background rounded-2xl p-4 border transition-colors ${item.status === "done" ? "border-emerald-500/30" : item.status === "error" ? "border-red-500/30" : item.status === "uploading" ? "border-primary/30" : "border-white/10"}`}>
+                        <div className="flex gap-4">
+                          <div className="shrink-0">
+                            <img src={item.preview} alt={item.title} className="w-20 h-20 rounded-xl object-cover border border-white/10" />
+                          </div>
+                          <div className="flex-1 space-y-3 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <input type="text" placeholder="Template title" value={item.title} onChange={(e) => updateBulkItem(index, { title: e.target.value })} disabled={item.status !== "pending"} className="flex-1 bg-surface border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-primary disabled:opacity-50" />
+                              {item.status === "pending" && (
+                                <button onClick={() => removeBulkItem(index)} className="p-1.5 rounded-lg hover:bg-red-400/10 text-white/40 hover:text-red-400 transition-colors shrink-0"><X className="w-4 h-4" /></button>
+                              )}
+                              {item.status === "uploading" && <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />}
+                              {item.status === "done" && <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />}
+                              {item.status === "error" && <AlertCircle className="w-5 h-5 text-red-400 shrink-0" title={item.error} />}
+                            </div>
+                            <textarea rows={2} placeholder="Hidden prompt (required) — the AI prompt users never see" value={item.hiddenPrompt} onChange={(e) => updateBulkItem(index, { hiddenPrompt: e.target.value })} disabled={item.status !== "pending"} className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-primary resize-none disabled:opacity-50" />
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                              <select value={item.category} onChange={(e) => updateBulkItem(index, { category: e.target.value })} disabled={item.status !== "pending"} className="bg-surface border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs appearance-none focus:outline-none focus:border-primary disabled:opacity-50">
+                                <option value="">Category</option>
+                                {CATEGORIES.filter((c) => c !== "All").map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
+                              </select>
+                              <select value={item.model} onChange={(e) => updateBulkItem(index, { model: e.target.value })} disabled={item.status !== "pending"} className="bg-surface border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs appearance-none focus:outline-none focus:border-primary disabled:opacity-50">
+                                <option value="nano-banana">Nano Banana</option>
+                                <option value="nano-banana-pro">Nano Banana Pro</option>
+                                <option value="nano-banana-2">Nano Banana 2</option>
+                                <option value="imagen-3">Imagen 3</option>
+                              </select>
+                              <select value={item.creditCost} onChange={(e) => updateBulkItem(index, { creditCost: Number(e.target.value) })} disabled={item.status !== "pending"} className="bg-surface border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs appearance-none focus:outline-none focus:border-primary disabled:opacity-50">
+                                <option value={1}>1 Credit</option>
+                                <option value={2}>2 Credits</option>
+                                <option value={3}>3 Credits</option>
+                              </select>
+                              <input type="text" placeholder="Tags (comma-sep)" value={item.tags} onChange={(e) => updateBulkItem(index, { tags: e.target.value })} disabled={item.status !== "pending"} className="bg-surface border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs placeholder:text-white/30 focus:outline-none focus:border-primary disabled:opacity-50" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t border-white/10 flex items-center justify-between">
+                <button onClick={() => !bulkUploading && setShowBulkModal(false)} className="px-5 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all text-sm font-medium">Cancel</button>
+                <button onClick={handleBulkPublish} disabled={bulkUploading || bulkReadyCount === 0} className="px-6 py-2.5 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all text-sm font-medium shadow-lg shadow-primary/20 disabled:opacity-50 flex items-center gap-2">
+                  {bulkUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : <>Publish {bulkReadyCount} Template{bulkReadyCount !== 1 ? "s" : ""}</>}
+                </button>
               </div>
             </motion.div>
           </motion.div>

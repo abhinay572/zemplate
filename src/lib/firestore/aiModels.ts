@@ -1,8 +1,4 @@
-import {
-  doc, getDoc, setDoc, updateDoc, collection, query, where,
-  orderBy, getDocs, serverTimestamp,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 
 export interface AIModel {
   id: string;
@@ -32,69 +28,117 @@ export interface AIModel {
   updatedAt: any;
 }
 
+function mapRow(row: any): AIModel {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    provider: row.provider,
+    providerModelId: row.provider_model_id,
+    providerCostPerCall: Number(row.provider_cost_per_call),
+    baseCreditCost: row.base_credit_cost,
+    hdCreditCost: row.hd_credit_cost,
+    ultraCreditCost: row.ultra_credit_cost,
+    supportsTextToImage: row.supports_text_to_image,
+    supportsImageEditing: row.supports_image_editing,
+    supportsFaceSwap: row.supports_face_swap,
+    supportsVideo: row.supports_video,
+    supportsUpscale: row.supports_upscale,
+    maxResolution: row.max_resolution,
+    supportedAspectRatios: row.supported_aspect_ratios || [],
+    supportedStyles: row.supported_styles || [],
+    isEnabled: row.is_enabled,
+    isDefault: row.is_default,
+    maxPerDay: row.max_per_day,
+    maxPerUserPerDay: row.max_per_user_per_day,
+    callsToday: row.calls_today,
+    priorityOrder: row.priority_order,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export async function createAIModel(data: Omit<AIModel, "id" | "callsToday" | "createdAt" | "updatedAt">) {
-  const ref = doc(collection(db, "ai_models"));
-  await setDoc(ref, {
-    ...data,
-    callsToday: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  return ref.id;
+  const { data: row, error } = await supabase
+    .from("ai_models")
+    .insert({
+      name: data.name, slug: data.slug, provider: data.provider,
+      provider_model_id: data.providerModelId, provider_cost_per_call: data.providerCostPerCall,
+      base_credit_cost: data.baseCreditCost, hd_credit_cost: data.hdCreditCost, ultra_credit_cost: data.ultraCreditCost,
+      supports_text_to_image: data.supportsTextToImage, supports_image_editing: data.supportsImageEditing,
+      supports_face_swap: data.supportsFaceSwap, supports_video: data.supportsVideo, supports_upscale: data.supportsUpscale,
+      max_resolution: data.maxResolution, supported_aspect_ratios: data.supportedAspectRatios,
+      supported_styles: data.supportedStyles, is_enabled: data.isEnabled, is_default: data.isDefault,
+      max_per_day: data.maxPerDay, max_per_user_per_day: data.maxPerUserPerDay, priority_order: data.priorityOrder,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return row.id;
 }
 
 export async function getAIModel(id: string): Promise<AIModel | null> {
-  const snap = await getDoc(doc(db, "ai_models", id));
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() } as AIModel;
+  const { data, error } = await supabase.from("ai_models").select("*").eq("id", id).single();
+  if (error || !data) return null;
+  return mapRow(data);
 }
 
 export async function getAIModelBySlug(slug: string): Promise<AIModel | null> {
-  const q = query(collection(db, "ai_models"), where("slug", "==", slug));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  return { id: snap.docs[0].id, ...snap.docs[0].data() } as AIModel;
+  const { data, error } = await supabase.from("ai_models").select("*").eq("slug", slug).single();
+  if (error || !data) return null;
+  return mapRow(data);
 }
 
 export async function getAllAIModels(): Promise<AIModel[]> {
-  const q = query(collection(db, "ai_models"), orderBy("priorityOrder", "asc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as AIModel));
+  const { data, error } = await supabase.from("ai_models").select("*").order("priority_order", { ascending: true });
+  if (error) return [];
+  return (data || []).map(mapRow);
 }
 
 export async function getEnabledModels(): Promise<AIModel[]> {
-  const q = query(
-    collection(db, "ai_models"),
-    where("isEnabled", "==", true),
-    orderBy("priorityOrder", "asc")
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as AIModel));
+  const { data, error } = await supabase.from("ai_models").select("*").eq("is_enabled", true).order("priority_order", { ascending: true });
+  if (error) return [];
+  return (data || []).map(mapRow);
 }
 
-export async function updateAIModel(id: string, data: Partial<AIModel>) {
-  await updateDoc(doc(db, "ai_models", id), { ...data, updatedAt: serverTimestamp() });
+export async function updateAIModel(id: string, updates: Partial<AIModel>) {
+  const dbUpdates: any = { updated_at: new Date().toISOString() };
+  if (updates.name !== undefined) dbUpdates.name = updates.name;
+  if (updates.slug !== undefined) dbUpdates.slug = updates.slug;
+  if (updates.provider !== undefined) dbUpdates.provider = updates.provider;
+  if (updates.providerModelId !== undefined) dbUpdates.provider_model_id = updates.providerModelId;
+  if (updates.providerCostPerCall !== undefined) dbUpdates.provider_cost_per_call = updates.providerCostPerCall;
+  if (updates.baseCreditCost !== undefined) dbUpdates.base_credit_cost = updates.baseCreditCost;
+  if (updates.hdCreditCost !== undefined) dbUpdates.hd_credit_cost = updates.hdCreditCost;
+  if (updates.ultraCreditCost !== undefined) dbUpdates.ultra_credit_cost = updates.ultraCreditCost;
+  if (updates.isEnabled !== undefined) dbUpdates.is_enabled = updates.isEnabled;
+  if (updates.isDefault !== undefined) dbUpdates.is_default = updates.isDefault;
+  if (updates.maxPerDay !== undefined) dbUpdates.max_per_day = updates.maxPerDay;
+  if (updates.maxPerUserPerDay !== undefined) dbUpdates.max_per_user_per_day = updates.maxPerUserPerDay;
+  if (updates.priorityOrder !== undefined) dbUpdates.priority_order = updates.priorityOrder;
+  if (updates.supportsTextToImage !== undefined) dbUpdates.supports_text_to_image = updates.supportsTextToImage;
+  if (updates.supportsImageEditing !== undefined) dbUpdates.supports_image_editing = updates.supportsImageEditing;
+  if (updates.supportsFaceSwap !== undefined) dbUpdates.supports_face_swap = updates.supportsFaceSwap;
+  if (updates.supportsVideo !== undefined) dbUpdates.supports_video = updates.supportsVideo;
+  if (updates.supportsUpscale !== undefined) dbUpdates.supports_upscale = updates.supportsUpscale;
+  if (updates.maxResolution !== undefined) dbUpdates.max_resolution = updates.maxResolution;
+  if (updates.supportedAspectRatios !== undefined) dbUpdates.supported_aspect_ratios = updates.supportedAspectRatios;
+  if (updates.supportedStyles !== undefined) dbUpdates.supported_styles = updates.supportedStyles;
+  const { error } = await supabase.from("ai_models").update(dbUpdates).eq("id", id);
+  if (error) throw error;
 }
 
 export async function toggleAIModel(id: string, enabled: boolean) {
-  await updateDoc(doc(db, "ai_models", id), {
-    isEnabled: enabled,
-    updatedAt: serverTimestamp(),
-  });
+  const { error } = await supabase.from("ai_models").update({ is_enabled: enabled, updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) throw error;
 }
 
 export async function getDefaultModel(): Promise<AIModel | null> {
-  const q = query(
-    collection(db, "ai_models"),
-    where("isDefault", "==", true),
-    where("isEnabled", "==", true)
-  );
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  return { id: snap.docs[0].id, ...snap.docs[0].data() } as AIModel;
+  const { data, error } = await supabase.from("ai_models").select("*").eq("is_default", true).eq("is_enabled", true).limit(1).single();
+  if (error || !data) return null;
+  return mapRow(data);
 }
 
-// Seed all models from the backend strategy
 export async function seedAIModels() {
   const models = [
     { name: "Nano Banana", slug: "nano-banana", provider: "gemini" as const, providerModelId: "gemini-2.5-flash-image", providerCostPerCall: 0.039, baseCreditCost: 1, hdCreditCost: 2, ultraCreditCost: 3, supportsTextToImage: true, supportsImageEditing: true, supportsFaceSwap: false, supportsVideo: false, supportsUpscale: false, maxResolution: "1024x1024", supportedAspectRatios: ["1:1", "3:4", "4:3", "9:16", "16:9"], supportedStyles: ["Photorealistic", "Anime", "Digital Art", "Pixel Art"], isEnabled: true, isDefault: true, maxPerDay: 10000, maxPerUserPerDay: 100, priorityOrder: 1 },

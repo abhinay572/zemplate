@@ -3,8 +3,7 @@ import { Mail, Lock, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react"
 import { SEO } from "@/components/seo/SEO";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 
 export function Login() {
   const { loginWithEmail, loginWithGoogle, user } = useAuth();
@@ -55,7 +54,8 @@ export function Login() {
     }
     setError("");
     try {
-      await sendPasswordResetEmail(auth, email);
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email);
+      if (resetError) throw resetError;
       setResetSent(true);
     } catch (err: any) {
       setError("Could not send reset email. Check the email address and try again.");

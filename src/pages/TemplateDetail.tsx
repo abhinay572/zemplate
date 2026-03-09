@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { SEO } from "@/components/seo/SEO";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { generateProductSchema } from "@/components/seo/JsonLd";
-import { getTemplate, getTemplatePrompt, incrementTemplateUsage } from "@/lib/firestore/templates";
+import { getTemplate, getTemplatePrompt, incrementTemplateUsage, incrementTemplateLikes, decrementTemplateLikes } from "@/lib/firestore/templates";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateFromTemplate } from "@/lib/providers/router";
 import { uploadGeneratedImage } from "@/lib/storage";
@@ -40,6 +40,8 @@ export function TemplateDetail() {
   const [error, setError] = useState("");
   const [selectedRatio, setSelectedRatio] = useState("4:5");
   const [selectedStyle, setSelectedStyle] = useState("Original");
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -60,6 +62,7 @@ export function TemplateDetail() {
             cost: t.creditCost || 1,
             model: t.model,
           });
+          setLikeCount(t.likesCount || 0);
           if (t.aspectRatio) setSelectedRatio(t.aspectRatio);
         } else {
           const mock = MOCK_TEMPLATES.find((m) => m.id === id) || MOCK_TEMPLATES[0];
@@ -90,7 +93,7 @@ export function TemplateDetail() {
     let generationId = "";
     try {
       generationId = await createGeneration({
-        userId: user.uid,
+        userId: user.id,
         templateId: id,
         templateTitle: template.title,
         toolSlug: "template-generate",
@@ -111,7 +114,7 @@ export function TemplateDetail() {
     }
 
     try {
-      const deducted = await deductCredits(user.uid, creditCost);
+      const deducted = await deductCredits(user.id, creditCost);
       if (!deducted) {
         setError("Not enough credits.");
         setIsGenerating(false);
@@ -130,14 +133,14 @@ export function TemplateDetail() {
 
       if (!results || results.length === 0) throw new Error("No image generated. Please try again.");
 
-      const outputUrl = await uploadGeneratedImage(results[0].imageBytes, user.uid, generationId || Date.now().toString());
+      const outputUrl = await uploadGeneratedImage(results[0].imageBytes, user.id, generationId || Date.now().toString());
       const processingTime = Date.now() - startTime;
 
       if (generationId) {
         await updateGeneration(generationId, { status: "completed", outputUrl, processingTimeMs: processingTime });
       }
 
-      await incrementGenerations(user.uid);
+      await incrementGenerations(user.id);
       await incrementTemplateUsage(id);
       await refreshProfile();
 
@@ -149,6 +152,30 @@ export function TemplateDetail() {
       if (generationId) await updateGeneration(generationId, { status: "failed", errorMessage: err.message || "Unknown error" });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleLike = async () => {
+    if (!id) return;
+    if (liked) {
+      setLiked(false);
+      setLikeCount((c) => Math.max(0, c - 1));
+      await decrementTemplateLikes(id).catch(console.error);
+    } else {
+      setLiked(true);
+      setLikeCount((c) => c + 1);
+      await incrementTemplateLikes(id).catch(console.error);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!template) return;
+    const url = `${window.location.origin}/template/${template.id}`;
+    if (navigator.share) {
+      await navigator.share({ title: template.title, text: `Check out this AI template: ${template.title}`, url }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(url);
+      alert("Link copied to clipboard!");
     }
   };
 
@@ -235,10 +262,10 @@ export function TemplateDetail() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <button className="w-10 h-10 rounded-full bg-surface border border-white/10 flex items-center justify-center text-white/70 hover:text-pink-500 hover:bg-pink-500/10 hover:border-pink-500/30 transition-all active:scale-90">
-                  <Heart className="w-5 h-5" />
+                <button onClick={handleLike} className={`w-10 h-10 rounded-full bg-surface border flex items-center justify-center transition-all active:scale-90 ${liked ? "border-pink-500/30 bg-pink-500/10 text-pink-500" : "border-white/10 text-white/70 hover:text-pink-500 hover:bg-pink-500/10 hover:border-pink-500/30"}`}>
+                  <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
                 </button>
-                <button className="w-10 h-10 rounded-full bg-surface border border-white/10 flex items-center justify-center text-white/70 hover:text-blue-400 hover:bg-blue-400/10 hover:border-blue-400/30 transition-all active:scale-90">
+                <button onClick={handleShare} className="w-10 h-10 rounded-full bg-surface border border-white/10 flex items-center justify-center text-white/70 hover:text-blue-400 hover:bg-blue-400/10 hover:border-blue-400/30 transition-all active:scale-90">
                   <Share2 className="w-5 h-5" />
                 </button>
               </div>
@@ -251,7 +278,7 @@ export function TemplateDetail() {
               <div className="inline-block px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold uppercase tracking-wider mb-4">{template.category}</div>
               <h1 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">{template.title}</h1>
               <div className="flex items-center gap-6 text-white/50 text-sm">
-                <span className="flex items-center gap-1.5"><Heart className="w-4 h-4" /> {template.likes.toLocaleString()} likes</span>
+                <span className="flex items-center gap-1.5"><Heart className="w-4 h-4" /> {likeCount.toLocaleString()} likes</span>
                 <span className="flex items-center gap-1.5"><Download className="w-4 h-4" /> {template.uses.toLocaleString()} uses</span>
               </div>
             </div>

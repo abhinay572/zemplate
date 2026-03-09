@@ -1,9 +1,4 @@
-import {
-  doc, setDoc, updateDoc, deleteDoc, collection, query, where,
-  orderBy, limit, getDocs, serverTimestamp, increment, startAfter,
-  DocumentSnapshot,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 
 export interface CommunityPost {
   id: string;
@@ -30,75 +25,123 @@ export interface PostComment {
   createdAt: any;
 }
 
+function mapPost(row: any): CommunityPost {
+  return {
+    id: row.id, userId: row.user_id, userName: row.user_name, userAvatar: row.user_avatar,
+    imageUrl: row.image_url, caption: row.caption, templateId: row.template_id,
+    templateTitle: row.template_title, toolUsed: row.tool_used,
+    likes: row.likes, comments: row.comments, createdAt: row.created_at,
+  };
+}
+
+function mapComment(row: any): PostComment {
+  return {
+    id: row.id, postId: row.post_id, userId: row.user_id, userName: row.user_name,
+    userAvatar: row.user_avatar, text: row.text, createdAt: row.created_at,
+  };
+}
+
 export async function createPost(data: Omit<CommunityPost, "id" | "likes" | "comments" | "createdAt">): Promise<string> {
-  const ref = doc(collection(db, "community_posts"));
-  await setDoc(ref, { ...data, likes: 0, comments: 0, createdAt: serverTimestamp() });
-  return ref.id;
+  const { data: row, error } = await supabase
+    .from("community_posts")
+    .insert({
+      user_id: data.userId, user_name: data.userName, user_avatar: data.userAvatar,
+      image_url: data.imageUrl, caption: data.caption, template_id: data.templateId,
+      template_title: data.templateTitle, tool_used: data.toolUsed,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return row.id;
 }
 
 export async function deletePost(id: string) {
-  await deleteDoc(doc(db, "community_posts", id));
+  const { error } = await supabase.from("community_posts").delete().eq("id", id);
+  if (error) throw error;
 }
 
 export async function likePost(postId: string, userId: string) {
-  // Store like record to prevent double-likes
-  const likeRef = doc(db, "community_posts", postId, "likes", userId);
-  await setDoc(likeRef, { userId, createdAt: serverTimestamp() });
-  await updateDoc(doc(db, "community_posts", postId), { likes: increment(1) });
+  await supabase.from("community_post_likes").insert({ post_id: postId, user_id: userId });
+  const { data } = await supabase.from("community_posts").select("likes").eq("id", postId).single();
+  if (data) {
+    await supabase.from("community_posts").update({ likes: data.likes + 1 }).eq("id", postId);
+  }
 }
 
 export async function unlikePost(postId: string, userId: string) {
-  const likeRef = doc(db, "community_posts", postId, "likes", userId);
-  await deleteDoc(likeRef);
-  await updateDoc(doc(db, "community_posts", postId), { likes: increment(-1) });
+  await supabase.from("community_post_likes").delete().eq("post_id", postId).eq("user_id", userId);
+  const { data } = await supabase.from("community_posts").select("likes").eq("id", postId).single();
+  if (data) {
+    await supabase.from("community_posts").update({ likes: Math.max(0, data.likes - 1) }).eq("id", postId);
+  }
 }
 
 export async function hasUserLiked(postId: string, userId: string): Promise<boolean> {
-  const { getDoc: gd } = await import("firebase/firestore");
-  const snap = await gd(doc(db, "community_posts", postId, "likes", userId));
-  return snap.exists();
+  const { data } = await supabase
+    .from("community_post_likes")
+    .select("post_id")
+    .eq("post_id", postId)
+    .eq("user_id", userId)
+    .single();
+  return !!data;
 }
 
 export async function addComment(postId: string, data: Omit<PostComment, "id" | "postId" | "createdAt">): Promise<string> {
-  const ref = doc(collection(db, "community_posts", postId, "comments"));
-  await setDoc(ref, { ...data, postId, createdAt: serverTimestamp() });
-  await updateDoc(doc(db, "community_posts", postId), { comments: increment(1) });
-  return ref.id;
+  const { data: row, error } = await supabase
+    .from("community_post_comments")
+    .insert({
+      post_id: postId, user_id: data.userId, user_name: data.userName,
+      user_avatar: data.userAvatar, text: data.text,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  // Increment comments count
+  const { data: post } = await supabase.from("community_posts").select("comments").eq("id", postId).single();
+  if (post) {
+    await supabase.from("community_posts").update({ comments: post.comments + 1 }).eq("id", postId);
+  }
+  return row.id;
 }
 
 export async function getPostComments(postId: string): Promise<PostComment[]> {
-  const q = query(
-    collection(db, "community_posts", postId, "comments"),
-    orderBy("createdAt", "desc"),
-    limit(50)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as PostComment));
+  const { data, error } = await supabase
+    .from("community_post_comments")
+    .select("*")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) return [];
+  return (data || []).map(mapComment);
 }
 
 export async function getCommunityPosts(
-  options: { limitCount?: number; lastDoc?: DocumentSnapshot; sortBy?: "likes" | "createdAt" } = {}
-): Promise<{ posts: CommunityPost[]; lastDoc: DocumentSnapshot | null }> {
-  const q = query(
-    collection(db, "community_posts"),
-    orderBy(options.sortBy || "createdAt", "desc"),
-    ...(options.lastDoc ? [startAfter(options.lastDoc)] : []),
-    limit(options.limitCount || 20)
-  );
-  const snap = await getDocs(q);
+  options: { limitCount?: number; lastPage?: number; sortBy?: "likes" | "createdAt" } = {}
+): Promise<{ posts: CommunityPost[]; lastPage: number | null }> {
+  const pageSize = options.limitCount || 20;
+  const page = options.lastPage || 0;
+  const sortCol = options.sortBy === "likes" ? "likes" : "created_at";
+
+  const { data, error } = await supabase
+    .from("community_posts")
+    .select("*")
+    .order(sortCol, { ascending: false })
+    .range(page * pageSize, (page + 1) * pageSize - 1);
+
+  if (error) throw error;
   return {
-    posts: snap.docs.map((d) => ({ id: d.id, ...d.data() } as CommunityPost)),
-    lastDoc: snap.docs[snap.docs.length - 1] || null,
+    posts: (data || []).map(mapPost),
+    lastPage: (data || []).length === pageSize ? page + 1 : null,
   };
 }
 
 export async function getUserPosts(userId: string): Promise<CommunityPost[]> {
-  const q = query(
-    collection(db, "community_posts"),
-    where("userId", "==", userId),
-    orderBy("createdAt", "desc"),
-    limit(50)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CommunityPost));
+  const { data, error } = await supabase
+    .from("community_posts")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) return [];
+  return (data || []).map(mapPost);
 }

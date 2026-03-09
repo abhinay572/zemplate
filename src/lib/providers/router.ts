@@ -136,7 +136,7 @@ export async function generateProductPhoto(imageBase64: string, scene: string) {
 // Logo maker
 export async function generateLogo(brandDescription: string) {
   const prompt = `Design a professional, modern logo for: ${brandDescription}. Clean vector-style, minimal, memorable, scalable. White or transparent background.`;
-  return generateWithGemini(prompt, { model: "gemini-3-pro-image-preview" });
+  return generateWithGemini(prompt, { model: "gemini-2.5-flash-image" });
 }
 
 // QR Code generator

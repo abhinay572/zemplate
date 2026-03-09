@@ -7,16 +7,18 @@ export function Footer() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
+  const [subError, setSubError] = useState("");
 
   const handleSubscribe = async () => {
     if (!email || !email.includes("@")) return;
     setSubscribing(true);
+    setSubError("");
     try {
       await subscribeNewsletter(email);
       setSubscribed(true);
       setEmail("");
     } catch {
-      // silent
+      setSubError("Failed to subscribe. Please try again.");
     } finally {
       setSubscribing(false);
     }
@@ -38,21 +40,24 @@ export function Footer() {
                 <Check className="w-5 h-5" /> You're subscribed!
               </div>
             ) : (
-              <>
-                <div className="relative flex-1">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
-                    placeholder="Enter your email"
-                    className="w-full bg-black/40 border border-white/10 rounded-full py-3 pl-4 pr-12 text-white placeholder:text-white/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
+              <div className="flex flex-col gap-2 flex-1 max-w-md">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); setSubError(""); }}
+                      onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
+                      placeholder="Enter your email"
+                      className="w-full bg-black/40 border border-white/10 rounded-full py-3 pl-4 pr-12 text-white placeholder:text-white/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <button onClick={handleSubscribe} disabled={subscribing} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-medium transition-colors flex items-center gap-2 whitespace-nowrap disabled:opacity-50">
+                    {subscribing ? "..." : "Subscribe"} <Send className="w-4 h-4" />
+                  </button>
                 </div>
-                <button onClick={handleSubscribe} disabled={subscribing} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-medium transition-colors flex items-center gap-2 whitespace-nowrap disabled:opacity-50">
-                  {subscribing ? "..." : "Subscribe"} <Send className="w-4 h-4" />
-                </button>
-              </>
+                {subError && <p className="text-red-400 text-xs">{subError}</p>}
+              </div>
             )}
           </div>
         </div>

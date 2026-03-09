@@ -16,18 +16,18 @@ import {
 } from "lucide-react";
 
 const FEATURES = [
-  { name: "AI Image Generator", icon: Image, href: "/tools/image-generator", active: true },
+  { name: "AI Image Generator", icon: Image, href: "/tools/ai-image-generator", active: true },
   { name: "AI Face Swap", icon: User, href: "/tools/face-swap" },
-  { name: "AI Background Remover", icon: Scissors, href: "/tools/bg-remover" },
+  { name: "AI Background Remover", icon: Scissors, href: "/tools/background-remover" },
   { name: "AI Upscaler", icon: ArrowUpRight, href: "/tools/upscaler" },
-  { name: "UGC Creator", icon: Video, href: "/tools/ugc" },
-  { name: "AI Headshot", icon: PenTool, href: "/tools/headshot" },
+  { name: "UGC Creator", icon: Video, href: "/tools/ugc-creator" },
+  { name: "AI Headshot", icon: PenTool, href: "/tools/ai-headshot" },
   { name: "AI Product Photos", icon: Box, href: "/tools/product-photos" },
   { name: "Text to Video", icon: MonitorPlay, href: "/tools/text-to-video" },
   { name: "Image to Video", icon: PlaySquare, href: "/tools/image-to-video" },
   { name: "AI Logo Maker", icon: Palette, href: "/tools/logo-maker" },
-  { name: "AI Avatar", icon: Smile, href: "/tools/avatar" },
-  { name: "Batch Generator", icon: Layers, href: "/tools/batch" },
+  { name: "AI Avatar", icon: Smile, href: "/tools/ai-avatar" },
+  { name: "Batch Generator", icon: Layers, href: "/tools/batch-generator" },
 ];
 
 export function FeatureToolbar() {

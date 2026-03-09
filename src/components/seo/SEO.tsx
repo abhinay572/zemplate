@@ -18,7 +18,7 @@ export function SEO({
   jsonLd 
 }: SEOProps) {
   const siteName = 'Zemplate.ai';
-  const fullTitle = `${title} | ${siteName}`;
+  const fullTitle = title.includes(siteName) ? title : `${title} | ${siteName}`;
 
   return (
     <Helmet>

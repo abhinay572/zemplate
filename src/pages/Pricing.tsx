@@ -3,6 +3,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Check, Zap, CreditCard, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SEO } from "@/components/seo/SEO";
+import { Link } from "react-router-dom";
 
 const PLANS = [
   {
@@ -17,6 +18,7 @@ const PLANS = [
       "Community support",
     ],
     cta: "Get Started Free",
+    href: "/signup",
     popular: false,
   },
   {
@@ -34,6 +36,7 @@ const PLANS = [
       "No watermarks",
     ],
     cta: "Upgrade to Pro",
+    href: "/dashboard/billing",
     popular: true,
   },
   {
@@ -49,6 +52,7 @@ const PLANS = [
       "Credits never expire",
     ],
     cta: "Buy Credits",
+    href: "/dashboard/billing",
     popular: false,
   },
 ];
@@ -110,16 +114,17 @@ export function Pricing() {
                 ))}
               </ul>
 
-              <button
+              <Link
+                to={plan.href}
                 className={cn(
-                  "w-full py-3 rounded-xl font-semibold transition-all duration-300",
+                  "w-full py-3 rounded-xl font-semibold transition-all duration-300 block text-center",
                   plan.popular
                     ? "bg-gradient-primary text-white shadow-lg hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] hover:scale-[1.02]"
                     : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
                 )}
               >
                 {plan.cta}
-              </button>
+              </Link>
             </div>
           ))}
         </div>

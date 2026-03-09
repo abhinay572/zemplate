@@ -3,6 +3,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
 import { SEO } from "@/components/seo/SEO";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
+import { Link } from "react-router-dom";
 
 const BLOG_POSTS = [
   {
@@ -73,7 +74,7 @@ export function Blog() {
 
         {/* Featured Post */}
         <div className="mb-16">
-          <div className="group relative rounded-3xl overflow-hidden bg-surface border border-white/10 hover:border-white/20 transition-all duration-500 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] cursor-pointer">
+          <Link to={`/blog/${BLOG_POSTS[0].id}`} className="group relative rounded-3xl overflow-hidden bg-surface border border-white/10 hover:border-white/20 transition-all duration-500 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] cursor-pointer block">
             <div className="grid md:grid-cols-2 gap-0">
               <div className="relative h-[300px] md:h-[400px] overflow-hidden">
                 <img 
@@ -114,13 +115,13 @@ export function Blog() {
                 </div>
               </div>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Recent Posts Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {BLOG_POSTS.slice(1).map((post) => (
-            <div key={post.id} className="group relative rounded-2xl overflow-hidden bg-surface border border-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] cursor-pointer flex flex-col">
+            <Link to={`/blog/${post.id}`} key={post.id} className="group relative rounded-2xl overflow-hidden bg-surface border border-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] cursor-pointer flex flex-col">
               <div className="relative h-48 overflow-hidden">
                 <img 
                   src={post.image} 
@@ -157,7 +158,7 @@ export function Blog() {
                   <ArrowRight className="w-4 h-4 text-white/40 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </main>

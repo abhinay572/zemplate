@@ -32,6 +32,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(u);
       if (u) fetchProfile(u.id).finally(() => setLoading(false));
       else setLoading(false);
+    }).catch(() => {
+      setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -132,7 +134,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Sign out API error:", err);
+    }
+    // Always clear local state even if the API call fails
     setUser(null);
     setProfile(null);
   }, []);

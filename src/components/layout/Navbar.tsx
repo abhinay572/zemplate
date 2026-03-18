@@ -1,7 +1,7 @@
 import { Bell, Coins, Zap } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const NAV_LINKS = [
@@ -18,6 +18,20 @@ export function Navbar() {
   const { user, profile, logout } = useAuth();
   const isLoggedIn = !!user;
   const [showMenu, setShowMenu] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showMenu]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 h-16">
@@ -67,7 +81,7 @@ export function Navbar() {
               >
                 <Bell className="w-4 h-4" />
               </Link>
-              <div className="relative">
+              <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setShowMenu(!showMenu)}
                   className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary p-[2px]"
@@ -96,10 +110,16 @@ export function Navbar() {
                       Profile Settings
                     </Link>
                     <button
-                      onClick={async () => { setShowMenu(false); await logout(); navigate("/"); }}
-                      className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-400/5 transition-colors"
+                      disabled={signingOut}
+                      onClick={async () => {
+                        setSigningOut(true);
+                        setShowMenu(false);
+                        await logout();
+                        navigate("/");
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-400/5 transition-colors disabled:opacity-50"
                     >
-                      Sign Out
+                      {signingOut ? "Signing Out..." : "Sign Out"}
                     </button>
                   </div>
                 )}

@@ -24,9 +24,10 @@ import { getAdminTemplates, createTemplate, deleteTemplate, updateTemplate, type
 import { uploadTemplateImage } from "@/lib/storage";
 
 const CATEGORIES = [
-  "All", "Sci-Fi & Fantasy", "Product Photography", "Portrait", "Instagram",
-  "Art & Illustration", "YouTube Thumbnails", "Food & Restaurant", "Real Estate",
-  "Fitness", "Logo", "Business",
+  "All", "Baby Photography", "Family Photoshoot", "Model Portfolio", "Wedding Photography",
+  "Professional Headshot", "Couple Photography", "Maternity Photography", "Pet Photography",
+  "Food Photography", "Product Photography", "Real Estate", "Event Photography",
+  "Portrait", "Fitness",
 ];
 
 interface UploadFormData {

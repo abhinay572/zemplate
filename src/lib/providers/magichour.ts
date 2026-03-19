@@ -1,19 +1,23 @@
-const MAGIC_HOUR_API_KEY = import.meta.env.VITE_MAGIC_HOUR_API_KEY;
-const BASE_URL = "https://api.magichour.ai/v1";
+import { supabase } from "@/lib/supabase";
 
-async function magicHourFetch(endpoint: string, body: any) {
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+async function magicHourProxyFetch(endpoint: string, body: any) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("You must be logged in to use this feature.");
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/magichour-proxy`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${MAGIC_HOUR_API_KEY}`,
       "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ action: "call", endpoint, body }),
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`MagicHour API error: ${response.status} - ${error}`);
+    const errorData = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(errorData.error || `MagicHour proxy error: ${response.status}`);
   }
 
   return response.json();
@@ -24,10 +28,19 @@ async function pollForResult(
   maxAttempts: number = 60,
   intervalMs: number = 3000
 ): Promise<any> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("You must be logged in to use this feature.");
+
   for (let i = 0; i < maxAttempts; i++) {
-    const response = await fetch(`${BASE_URL}/projects/${projectId}`, {
-      headers: { Authorization: `Bearer ${MAGIC_HOUR_API_KEY}` },
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/magichour-proxy`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action: "poll", projectId }),
     });
+
     const data = await response.json();
 
     if (data.status === "completed") return data;
@@ -40,7 +53,7 @@ async function pollForResult(
 
 // Face Swap — Photo
 export async function faceSwapPhoto(sourceImageUrl: string, targetImageUrl: string) {
-  const result = await magicHourFetch("/face-swap/photo", {
+  const result = await magicHourProxyFetch("/face-swap/photo", {
     assets: {
       source_file_path: sourceImageUrl,
       target_file_path: targetImageUrl,
@@ -56,7 +69,7 @@ export async function faceSwapVideo(
   startSeconds: number,
   endSeconds: number
 ) {
-  const result = await magicHourFetch("/face-swap", {
+  const result = await magicHourProxyFetch("/face-swap", {
     assets: {
       image_file_path: faceImageUrl,
       video_source: "file",
@@ -70,7 +83,7 @@ export async function faceSwapVideo(
 
 // AI Headshot Generator
 export async function generateHeadshot(selfieUrl: string, style: string) {
-  const result = await magicHourFetch("/ai-headshot", {
+  const result = await magicHourProxyFetch("/ai-headshot", {
     assets: { image: selfieUrl },
     style,
   });
@@ -79,7 +92,7 @@ export async function generateHeadshot(selfieUrl: string, style: string) {
 
 // Text-to-Video
 export async function textToVideo(prompt: string, duration: number = 5) {
-  const result = await magicHourFetch("/text-to-video", {
+  const result = await magicHourProxyFetch("/text-to-video", {
     prompt,
     duration,
   });
@@ -88,7 +101,7 @@ export async function textToVideo(prompt: string, duration: number = 5) {
 
 // Image-to-Video (Animate still images)
 export async function imageToVideo(imageUrl: string, motion: string = "zoom") {
-  const result = await magicHourFetch("/image-to-video", {
+  const result = await magicHourProxyFetch("/image-to-video", {
     assets: { image: imageUrl },
     motion_type: motion,
   });
@@ -97,7 +110,7 @@ export async function imageToVideo(imageUrl: string, motion: string = "zoom") {
 
 // Video-to-Video (Style transfer)
 export async function videoToVideo(videoUrl: string, stylePrompt: string) {
-  const result = await magicHourFetch("/video-to-video", {
+  const result = await magicHourProxyFetch("/video-to-video", {
     assets: { video: videoUrl },
     style_prompt: stylePrompt,
   });
@@ -106,7 +119,7 @@ export async function videoToVideo(videoUrl: string, stylePrompt: string) {
 
 // Lip Sync
 export async function lipSync(videoUrl: string, audioUrl: string) {
-  const result = await magicHourFetch("/lip-sync", {
+  const result = await magicHourProxyFetch("/lip-sync", {
     assets: {
       video: videoUrl,
       audio: audioUrl,
@@ -117,7 +130,7 @@ export async function lipSync(videoUrl: string, audioUrl: string) {
 
 // Talking Photo
 export async function talkingPhoto(imageUrl: string, audioUrl: string) {
-  const result = await magicHourFetch("/talking-photo", {
+  const result = await magicHourProxyFetch("/talking-photo", {
     assets: {
       image: imageUrl,
       audio: audioUrl,
@@ -128,7 +141,7 @@ export async function talkingPhoto(imageUrl: string, audioUrl: string) {
 
 // AI Avatar Generator
 export async function generateAvatar(imageUrl: string, style: string) {
-  const result = await magicHourFetch("/ai-avatar", {
+  const result = await magicHourProxyFetch("/ai-avatar", {
     assets: { image: imageUrl },
     style,
   });

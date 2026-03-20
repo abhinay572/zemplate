@@ -32,7 +32,7 @@ export const generateProductSchema = (template: any) => ({
   "aggregateRating": {
     "@type": "AggregateRating",
     "ratingValue": "4.9",
-    "reviewCount": template.likes.replace(/,/g, '') || "150"
+    "reviewCount": String(template.likes || 150).replace(/,/g, '')
   }
 });
 

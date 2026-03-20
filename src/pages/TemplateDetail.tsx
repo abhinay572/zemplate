@@ -97,7 +97,7 @@ export function TemplateDetail() {
         templateId: id,
         templateTitle: template.title,
         toolSlug: "template-generate",
-        modelUsed: template.model || "imagen-3",
+        modelUsed: template.model || "imagen-4",
         inputPrompt: "[hidden]",
         outputUrl: "",
         outputType: "image",

@@ -66,8 +66,8 @@ export function getToolConfig(tool: ToolType): ToolConfig {
 // Map DB model slugs to actual API model names
 function resolveModelName(slug?: string): string | undefined {
   const MODEL_MAP: Record<string, string> = {
-    "nano-banana": "gemini-2.0-flash-exp",
-    "nano-banana-pro": "gemini-2.5-flash-image",
+    "nano-banana": "gemini-2.5-flash-image",
+    "nano-banana-pro": "gemini-3.1-flash-image-preview",
     "imagen-3": "imagen-4.0-generate-001",
     "imagen-4": "imagen-4.0-generate-001",
   };

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Flame, Sparkles, User, Image as ImageIcon, Camera, Palette, Briefcase, Utensils, Shirt, Home, Smartphone, Heart, Gamepad2, Music, BookOpen, Dog, Dumbbell, Plane, Calendar, Cpu, Box, Lightbulb, Youtube, FileText } from "lucide-react";
+import { Flame, Sparkles, User, Camera, Briefcase, Shirt, Heart, Dog, Dumbbell, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const CATEGORIES = [
@@ -13,9 +13,6 @@ const CATEGORIES = [
   { name: "Couple Photography", icon: Heart, slug: "couple-photography" },
   { name: "Maternity Photography", icon: Heart, slug: "maternity-photography" },
   { name: "Pet Photography", icon: Dog, slug: "pet-photography" },
-  { name: "Food Photography", icon: Utensils, slug: "food-photography" },
-  { name: "Product Photography", icon: Box, slug: "product-photography" },
-  { name: "Real Estate", icon: Home, slug: "real-estate" },
   { name: "Event Photography", icon: Calendar, slug: "event-photography" },
   { name: "Portrait", icon: Camera, slug: "portrait" },
   { name: "Fitness", icon: Dumbbell, slug: "fitness" },

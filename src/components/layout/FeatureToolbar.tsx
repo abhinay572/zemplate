@@ -33,8 +33,10 @@ const FEATURES = [
 export function FeatureToolbar() {
   return (
     <div className="w-full border-b border-white/5 bg-surface/50 backdrop-blur-sm sticky top-16 z-40">
-      <div className="max-w-[1600px] mx-auto px-4 md:px-6">
-        <div className="flex items-center gap-2 overflow-x-auto py-3 hide-scrollbar snap-x snap-mandatory">
+      <div className="max-w-[1600px] mx-auto px-4 md:px-6 relative">
+        {/* Fade edges to indicate scrollable content */}
+        <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-background/80 to-transparent z-10 pointer-events-none"></div>
+        <div className="flex items-center gap-2 overflow-x-auto py-3 hide-scrollbar snap-x snap-mandatory pr-12">
           {FEATURES.map((feature) => (
             <Link
               key={feature.name}

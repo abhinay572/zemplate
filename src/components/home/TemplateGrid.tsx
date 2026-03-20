@@ -120,7 +120,7 @@ export function TemplateGrid() {
                 className="w-[280px] md:w-[320px] shrink-0 snap-start relative"
               >
                 <div className="absolute -top-3 -right-3 z-10 bg-surface border border-white/10 text-emerald-400 text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
-                  ↑ 340%
+                  <Flame className="w-3 h-3" /> Hot
                 </div>
                 <TemplateCard {...template} />
               </motion.div>

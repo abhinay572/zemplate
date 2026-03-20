@@ -1,6 +1,5 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { FeatureToolbar } from "@/components/layout/FeatureToolbar";
-import { PromoCarousel } from "@/components/home/PromoCarousel";
 import { CategoryFilter } from "@/components/home/CategoryFilter";
 import { TemplateGrid } from "@/components/home/TemplateGrid";
 import { Footer } from "@/components/layout/Footer";
@@ -68,7 +67,6 @@ export function Home() {
           </div>
         </motion.div>
 
-        <PromoCarousel />
         <CategoryFilter />
         <TemplateGrid />
       </main>

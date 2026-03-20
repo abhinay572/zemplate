@@ -49,24 +49,17 @@ export function TemplateGrid() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
-    console.log("[TemplateGrid] useEffect fired, fetching templates...");
     Promise.all([
-      getTrendingTemplates(4).then(r => { console.log("[TemplateGrid] trending:", r.length); return r; }),
-      getPublicTemplates({ limitCount: 20 }).then(r => { console.log("[TemplateGrid] public:", r.templates.length); return r; }),
+      getTrendingTemplates(4),
+      getPublicTemplates({ limitCount: 20 }),
     ])
       .then(([trendingResult, publicResult]) => {
-        console.log("[TemplateGrid] Setting state, trending:", trendingResult.length, "regular:", publicResult.templates.length);
         setTrending(trendingResult);
         setRegular(publicResult.templates);
         setNextPage(publicResult.lastPage);
       })
-      .catch((err) => {
-        console.error("[TemplateGrid] Fetch error:", err);
-      })
-      .finally(() => {
-        console.log("[TemplateGrid] Setting isLoading=false");
-        setIsLoading(false);
-      });
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
   }, []);
 
   const handleLoadMore = async () => {

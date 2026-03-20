@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabase, supabasePublic } from "@/lib/supabase";
 
 export interface Template {
   id: string;
@@ -159,7 +159,7 @@ export async function getPublicTemplates(options: {
   const sortCol = options.sortBy === "usageCount" ? "usage_count"
     : options.sortBy === "likesCount" ? "likes_count" : "created_at";
 
-  let q = supabase.from("templates").select("id,title,slug,category,model,model_slug,credit_cost,aspect_ratio,tags,image_url,status,usage_count,likes_count,author_name,author_avatar,created_at,updated_at").eq("status", "published").order(sortCol, { ascending: false });
+  let q = supabasePublic.from("templates").select("id,title,slug,category,model,model_slug,credit_cost,aspect_ratio,tags,image_url,status,usage_count,likes_count,author_name,author_avatar,created_at,updated_at").eq("status", "published").order(sortCol, { ascending: false });
 
   if (options.category && options.category !== "All") {
     q = q.eq("category", options.category);
@@ -200,7 +200,7 @@ export async function getAdminTemplates(options: {
 }
 
 export async function getTrendingTemplates(count: number = 10): Promise<PublicTemplate[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabasePublic
     .from("templates")
     .select("id,title,slug,category,model,model_slug,credit_cost,aspect_ratio,tags,image_url,status,usage_count,likes_count,author_name,author_avatar,created_at,updated_at")
     .eq("status", "published")
@@ -214,7 +214,7 @@ export async function searchTemplates(searchTerm: string): Promise<PublicTemplat
   const term = searchTerm.trim();
   if (!term) return [];
 
-  const { data, error } = await supabase
+  const { data, error } = await supabasePublic
     .from("templates")
     .select("id,title,slug,category,model,model_slug,credit_cost,aspect_ratio,tags,image_url,status,usage_count,likes_count,author_name,author_avatar,created_at,updated_at")
     .eq("status", "published")
@@ -226,7 +226,7 @@ export async function searchTemplates(searchTerm: string): Promise<PublicTemplat
 }
 
 export async function getTemplateCount(): Promise<{ total: number; published: number; draft: number }> {
-  const { count: total } = await supabase.from("templates").select("*", { count: "exact", head: true });
-  const { count: published } = await supabase.from("templates").select("*", { count: "exact", head: true }).eq("status", "published");
+  const { count: total } = await supabasePublic.from("templates").select("*", { count: "exact", head: true });
+  const { count: published } = await supabasePublic.from("templates").select("*", { count: "exact", head: true }).eq("status", "published");
   return { total: total || 0, published: published || 0, draft: (total || 0) - (published || 0) };
 }

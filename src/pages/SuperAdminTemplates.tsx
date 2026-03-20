@@ -66,13 +66,13 @@ export function SuperAdminTemplates() {
   const [uploading, setUploading] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [formData, setFormData] = useState<UploadFormData>({
-    title: "", category: "", hiddenPrompt: "", model: "nano-banana",
+    title: "", category: "", hiddenPrompt: "", model: "gemini-2.5-flash-image",
     creditCost: 1, aspectRatio: "1:1", tags: "",
   });
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkItems, setBulkItems] = useState<BulkItem[]>([]);
   const [bulkUploading, setBulkUploading] = useState(false);
-  const [bulkDefaults, setBulkDefaults] = useState({ category: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1" });
+  const [bulkDefaults, setBulkDefaults] = useState({ category: "", model: "gemini-2.5-flash-image", creditCost: 1, aspectRatio: "1:1" });
   const bulkFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export function SuperAdminTemplates() {
       const { templates: updated } = await getAdminTemplates();
       setTemplates(updated);
       setShowUploadModal(false);
-      setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" });
+      setFormData({ title: "", category: "", hiddenPrompt: "", model: "gemini-2.5-flash-image", creditCost: 1, aspectRatio: "1:1", tags: "" });
       setPreviewImage(null);
       setImageFile(null);
     } catch (err: any) {
@@ -189,7 +189,7 @@ export function SuperAdminTemplates() {
       setTemplates(updated);
       setShowUploadModal(false);
       setEditingTemplate(null);
-      setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" });
+      setFormData({ title: "", category: "", hiddenPrompt: "", model: "gemini-2.5-flash-image", creditCost: 1, aspectRatio: "1:1", tags: "" });
       setPreviewImage(null);
       setImageFile(null);
     } catch (err: any) {
@@ -330,7 +330,7 @@ export function SuperAdminTemplates() {
               <button onClick={() => { setBulkItems([]); setShowBulkModal(true); }} className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2">
                 <FileUp className="w-5 h-5" /> Bulk Upload
               </button>
-              <button onClick={() => { setEditingTemplate(null); setFormData({ title: "", category: "", hiddenPrompt: "", model: "nano-banana", creditCost: 1, aspectRatio: "1:1", tags: "" }); setPreviewImage(null); setImageFile(null); setShowUploadModal(true); }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-primary/20">
+              <button onClick={() => { setEditingTemplate(null); setFormData({ title: "", category: "", hiddenPrompt: "", model: "gemini-2.5-flash-image", creditCost: 1, aspectRatio: "1:1", tags: "" }); setPreviewImage(null); setImageFile(null); setShowUploadModal(true); }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-primary/20">
                 <Plus className="w-5 h-5" /> Upload Template
               </button>
             </div>

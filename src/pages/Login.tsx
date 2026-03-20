@@ -26,9 +26,12 @@ export function Login() {
       await loginWithEmail(email, password);
       navigate("/dashboard");
     } catch (err: any) {
-      setError(err.message?.includes("auth/")
-        ? "Invalid email or password. Please try again."
-        : err.message || "Login failed");
+      const msg = err.message || "Login failed";
+      setError(
+        msg.includes("auth/") || msg.includes("Invalid login") || msg.includes("invalid_credentials")
+          ? "Invalid email or password. Please try again."
+          : msg
+      );
     } finally {
       setLoading(false);
     }

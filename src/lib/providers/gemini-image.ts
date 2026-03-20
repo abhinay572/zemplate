@@ -10,20 +10,34 @@ export async function generateWithImagen(
     aspectRatio?: string;
   } = {}
 ): Promise<{ imageBytes: string; mimeType: string }[]> {
-  const response = await genai.models.generateImages({
-    model: "imagen-4.0-generate-001",
-    prompt,
-    config: {
-      numberOfImages: options.numberOfImages || 1,
-      aspectRatio: options.aspectRatio || "1:1",
-      outputMimeType: "image/png",
-    },
-  });
+  try {
+    const response = await genai.models.generateImages({
+      model: "imagen-4.0-generate-001",
+      prompt,
+      config: {
+        numberOfImages: options.numberOfImages || 1,
+        aspectRatio: options.aspectRatio || "1:1",
+        outputMimeType: "image/png",
+      },
+    });
 
-  return (response.generatedImages || []).map((img: any) => ({
-    imageBytes: img.image.imageBytes,
-    mimeType: "image/png",
-  }));
+    if (!response.generatedImages || response.generatedImages.length === 0) {
+      throw new Error("Imagen returned no images. The prompt may have been blocked by safety filters.");
+    }
+
+    return response.generatedImages.map((img: any) => ({
+      imageBytes: img.image.imageBytes,
+      mimeType: "image/png",
+    }));
+  } catch (err: any) {
+    if (err.message?.includes("safety") || err.message?.includes("blocked")) {
+      throw new Error("Image generation was blocked by safety filters. Try a different prompt or style.");
+    }
+    if (err.message?.includes("404") || err.message?.includes("not found")) {
+      throw new Error("Image model is temporarily unavailable. Please try again in a moment.");
+    }
+    throw new Error(err.message || "Image generation failed. Please try again.");
+  }
 }
 
 // METHOD 2: Gemini Native — conversational, supports editing + multi-turn
@@ -50,27 +64,45 @@ export async function generateWithGemini(
 
   contents.push({ text: prompt });
 
-  const response = await genai.models.generateContent({
-    model,
-    contents,
-    config: {
-      responseModalities: ["TEXT", "IMAGE"],
-    },
-  });
+  try {
+    const response = await genai.models.generateContent({
+      model,
+      contents,
+      config: {
+        responseModalities: ["TEXT", "IMAGE"],
+      },
+    });
 
-  const results: { imageBytes: string; mimeType: string; text?: string }[] = [];
-  const parts = response.candidates?.[0]?.content?.parts || [];
-
-  for (const part of parts) {
-    if (part.inlineData) {
-      results.push({
-        imageBytes: part.inlineData.data,
-        mimeType: part.inlineData.mimeType || "image/png",
-      });
+    if (!response.candidates || response.candidates.length === 0) {
+      throw new Error("No response from AI model. The request may have been blocked by safety filters.");
     }
-  }
 
-  return results;
+    const results: { imageBytes: string; mimeType: string; text?: string }[] = [];
+    const parts = response.candidates[0]?.content?.parts || [];
+
+    for (const part of parts) {
+      if (part.inlineData) {
+        results.push({
+          imageBytes: part.inlineData.data,
+          mimeType: part.inlineData.mimeType || "image/png",
+        });
+      }
+    }
+
+    if (results.length === 0) {
+      throw new Error("AI model returned text but no image. Try adjusting your prompt or style.");
+    }
+
+    return results;
+  } catch (err: any) {
+    if (err.message?.includes("safety") || err.message?.includes("blocked")) {
+      throw new Error("Image generation was blocked by safety filters. Try a different style.");
+    }
+    if (err.message?.includes("404") || err.message?.includes("not found")) {
+      throw new Error(`Model "${model}" is unavailable. Please try again later.`);
+    }
+    throw new Error(err.message || "Image generation failed. Please try again.");
+  }
 }
 
 // METHOD 3: Gemini Edit — conversational editing with image input
@@ -79,35 +111,50 @@ export async function editWithGemini(
   editPrompt: string,
   model: string = "gemini-2.5-flash-image"
 ): Promise<{ imageBytes: string; mimeType: string }[]> {
-  const response = await genai.models.generateContent({
-    model,
-    contents: [
-      {
-        inlineData: {
-          data: imageBase64,
-          mimeType: "image/png",
+  try {
+    const response = await genai.models.generateContent({
+      model,
+      contents: [
+        {
+          inlineData: {
+            data: imageBase64,
+            mimeType: "image/png",
+          },
         },
+        { text: editPrompt },
+      ],
+      config: {
+        responseModalities: ["TEXT", "IMAGE"],
       },
-      { text: editPrompt },
-    ],
-    config: {
-      responseModalities: ["TEXT", "IMAGE"],
-    },
-  });
+    });
 
-  const results: { imageBytes: string; mimeType: string }[] = [];
-  const parts = response.candidates?.[0]?.content?.parts || [];
-
-  for (const part of parts) {
-    if (part.inlineData) {
-      results.push({
-        imageBytes: part.inlineData.data,
-        mimeType: part.inlineData.mimeType || "image/png",
-      });
+    if (!response.candidates || response.candidates.length === 0) {
+      throw new Error("No response from AI model. The request may have been blocked.");
     }
-  }
 
-  return results;
+    const results: { imageBytes: string; mimeType: string }[] = [];
+    const parts = response.candidates[0]?.content?.parts || [];
+
+    for (const part of parts) {
+      if (part.inlineData) {
+        results.push({
+          imageBytes: part.inlineData.data,
+          mimeType: part.inlineData.mimeType || "image/png",
+        });
+      }
+    }
+
+    if (results.length === 0) {
+      throw new Error("AI returned no edited image. Try a different edit instruction.");
+    }
+
+    return results;
+  } catch (err: any) {
+    if (err.message?.includes("safety") || err.message?.includes("blocked")) {
+      throw new Error("Edit was blocked by safety filters. Try a different instruction.");
+    }
+    throw new Error(err.message || "Image editing failed. Please try again.");
+  }
 }
 
 // Style preset → prompt suffix mapping

@@ -54,8 +54,9 @@ export async function upscaleImage(
     },
   });
 
+  if (!prediction?.urls?.get) throw new Error("Replicate upscale failed: no prediction URL returned.");
   const resultUrl = await pollReplicateResult(prediction.urls.get);
-  return resultUrl; // Returns URL of upscaled image
+  return resultUrl;
 }
 
 // Background Remover — rembg (Precision mode)
@@ -67,6 +68,7 @@ export async function removeBackgroundPrecision(imageBase64: string): Promise<st
     },
   });
 
+  if (!prediction?.urls?.get) throw new Error("Replicate BG removal failed: no prediction URL returned.");
   const resultUrl = await pollReplicateResult(prediction.urls.get);
-  return resultUrl; // Returns URL of image with removed background
+  return resultUrl;
 }

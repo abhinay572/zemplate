@@ -59,6 +59,7 @@ export async function faceSwapPhoto(sourceImageUrl: string, targetImageUrl: stri
       target_file_path: targetImageUrl,
     },
   });
+  if (!result?.id) throw new Error("Face swap failed: no project ID returned.");
   return pollForResult(result.id);
 }
 
@@ -78,6 +79,7 @@ export async function faceSwapVideo(
     start_seconds: startSeconds,
     end_seconds: endSeconds,
   });
+  if (!result?.id) throw new Error("Video face swap failed: no project ID returned.");
   return pollForResult(result.id);
 }
 
@@ -87,6 +89,7 @@ export async function generateHeadshot(selfieUrl: string, style: string) {
     assets: { image: selfieUrl },
     style,
   });
+  if (!result?.id) throw new Error("Headshot generation failed: no project ID returned.");
   return pollForResult(result.id);
 }
 
@@ -96,6 +99,7 @@ export async function textToVideo(prompt: string, duration: number = 5) {
     prompt,
     duration,
   });
+  if (!result?.id) throw new Error("Text-to-video failed: no project ID returned.");
   return pollForResult(result.id);
 }
 
@@ -105,6 +109,7 @@ export async function imageToVideo(imageUrl: string, motion: string = "zoom") {
     assets: { image: imageUrl },
     motion_type: motion,
   });
+  if (!result?.id) throw new Error("Image-to-video failed: no project ID returned.");
   return pollForResult(result.id);
 }
 
@@ -114,6 +119,7 @@ export async function videoToVideo(videoUrl: string, stylePrompt: string) {
     assets: { video: videoUrl },
     style_prompt: stylePrompt,
   });
+  if (!result?.id) throw new Error("Video-to-video failed: no project ID returned.");
   return pollForResult(result.id);
 }
 
@@ -125,6 +131,7 @@ export async function lipSync(videoUrl: string, audioUrl: string) {
       audio: audioUrl,
     },
   });
+  if (!result?.id) throw new Error("Lip sync failed: no project ID returned.");
   return pollForResult(result.id);
 }
 
@@ -136,6 +143,7 @@ export async function talkingPhoto(imageUrl: string, audioUrl: string) {
       audio: audioUrl,
     },
   });
+  if (!result?.id) throw new Error("Talking photo failed: no project ID returned.");
   return pollForResult(result.id);
 }
 
@@ -145,5 +153,6 @@ export async function generateAvatar(imageUrl: string, style: string) {
     assets: { image: imageUrl },
     style,
   });
+  if (!result?.id) throw new Error("Avatar generation failed: no project ID returned.");
   return pollForResult(result.id);
 }

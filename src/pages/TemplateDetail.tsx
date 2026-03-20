@@ -2,8 +2,8 @@ import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MOCK_TEMPLATES } from "@/data/mockData";
-import { ArrowLeft, Heart, Share2, Download, Zap, Sparkles, SlidersHorizontal, CheckCircle2, AlertCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ArrowLeft, Heart, Share2, Download, Zap, Sparkles, SlidersHorizontal, CheckCircle2, AlertCircle, Upload, X, ImageIcon } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "motion/react";
 import { SEO } from "@/components/seo/SEO";
@@ -42,6 +42,9 @@ export function TemplateDetail() {
   const [selectedStyle, setSelectedStyle] = useState("Original");
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [userImage, setUserImage] = useState<string | null>(null); // base64
+  const [userImagePreview, setUserImagePreview] = useState<string | null>(null); // object URL
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -75,6 +78,34 @@ export function TemplateDetail() {
       })
       .finally(() => setIsLoading(false));
   }, [id]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setError("Please upload an image file."); return; }
+    if (file.size > 10 * 1024 * 1024) { setError("Image must be under 10MB."); return; }
+    setError("");
+
+    // Create preview URL
+    setUserImagePreview(URL.createObjectURL(file));
+
+    // Read as base64
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip data URI prefix to get raw base64
+      const base64 = result.split(",")[1];
+      setUserImage(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeUserImage = () => {
+    setUserImage(null);
+    if (userImagePreview) URL.revokeObjectURL(userImagePreview);
+    setUserImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleGenerate = async () => {
     if (!user || !profile || !template || !id) return;
@@ -129,6 +160,7 @@ export function TemplateDetail() {
         aspectRatio: selectedRatio,
         model: template.model,
         style: selectedStyle !== "Original" ? selectedStyle : undefined,
+        userImageBase64: userImage || undefined,
       });
 
       if (!results || results.length === 0) throw new Error("No image generated. Please try again.");
@@ -293,6 +325,34 @@ export function TemplateDetail() {
                   <AlertCircle className="w-4 h-4 shrink-0" /> {error}
                 </div>
               )}
+
+              {/* Photo Upload */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-white/70">Your Photo <span className="text-white/40">(optional)</span></label>
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                {userImagePreview ? (
+                  <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black/20">
+                    <img src={userImagePreview} alt="Your uploaded photo" className="w-full h-40 object-cover" />
+                    <button onClick={removeUserImage} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 border border-white/20 flex items-center justify-center text-white/80 hover:text-white hover:bg-red-500/50 transition-all">
+                      <X className="w-4 h-4" />
+                    </button>
+                    <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md text-xs text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Photo ready
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => fileInputRef.current?.click()} className="w-full py-6 rounded-xl border-2 border-dashed border-white/10 hover:border-primary/40 bg-white/[0.02] hover:bg-primary/5 transition-all flex flex-col items-center gap-2 group">
+                    <div className="w-10 h-10 rounded-full bg-white/5 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
+                      <Upload className="w-5 h-5 text-white/40 group-hover:text-primary transition-colors" />
+                    </div>
+                    <span className="text-sm text-white/50 group-hover:text-white/70 transition-colors">Upload your photo to apply this style</span>
+                    <span className="text-xs text-white/30">JPG, PNG up to 10MB</span>
+                  </button>
+                )}
+                {!userImagePreview && (
+                  <p className="text-xs text-white/30 text-center">Without a photo, AI will generate a new image from scratch</p>
+                )}
+              </div>
 
               <div className="space-y-3">
                 <label className="text-sm font-medium text-white/70">Aspect Ratio</label>

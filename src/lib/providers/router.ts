@@ -76,9 +76,10 @@ function resolveModelName(slug?: string): string | undefined {
 }
 
 // Template generation — fetch hidden prompt, call appropriate model
+// When userImageBase64 is provided, uses Gemini to transform the user's photo with the template style
 export async function generateFromTemplate(
   hiddenPrompt: string,
-  options: { aspectRatio?: string; model?: string; style?: string } = {}
+  options: { aspectRatio?: string; model?: string; style?: string; userImageBase64?: string } = {}
 ): Promise<{ imageBytes: string; mimeType: string }[]> {
   let prompt = hiddenPrompt;
 
@@ -86,6 +87,15 @@ export async function generateFromTemplate(
   const styleKey = options.style?.toLowerCase();
   if (styleKey && STYLE_PROMPTS[styleKey]) {
     prompt = `${hiddenPrompt}. ${STYLE_PROMPTS[styleKey].suffix}`;
+  }
+
+  // If user uploaded a photo, always use Gemini to transform it with the template prompt
+  if (options.userImageBase64) {
+    const transformPrompt = `Apply this photography style to the uploaded photo. Keep the person/subject from the photo but transform the entire image using this style: ${prompt}. Maintain the subject's likeness and features while applying the artistic style.`;
+    return generateWithGemini(transformPrompt, {
+      model: "gemini-2.5-flash-image",
+      referenceImages: [options.userImageBase64],
+    });
   }
 
   const resolvedModel = resolveModelName(options.model);

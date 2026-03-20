@@ -136,12 +136,12 @@ export function TemplateGrid() {
         </h2>
       </div>
 
-      {/* Masonry-style Grid using CSS Columns */}
-      <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 md:gap-6 space-y-4 md:space-y-6">
+      {/* Uniform Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
         {isLoading ? (
           Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="break-inside-avoid">
-              <SkeletonCard height={i % 2 === 0 ? "h-[300px]" : "h-[200px]"} />
+            <div key={i}>
+              <SkeletonCard height="h-[280px]" />
             </div>
           ))
         ) : (
@@ -149,9 +149,8 @@ export function TemplateGrid() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
+              transition={{ duration: 0.4, delay: Math.min(i * 0.03, 0.5) }}
               key={template.id}
-              className="break-inside-avoid"
             >
               <TemplateCard {...template} />
             </motion.div>

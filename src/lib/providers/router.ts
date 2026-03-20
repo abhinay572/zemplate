@@ -34,7 +34,7 @@ interface ToolConfig {
 }
 
 export const TOOL_CONFIG: Record<ToolType, ToolConfig> = {
-  "template-generate": { provider: "imagen", creditCost: 1, modelSlug: "imagen-3" },
+  "template-generate": { provider: "imagen", creditCost: 1, modelSlug: "imagen-4" },
   "text-to-image": { provider: "gemini", creditCost: 1, modelSlug: "nano-banana" },
   "face-swap": { provider: "magichour", creditCost: 2, modelSlug: "mh-face-swap" },
   "face-swap-video": { provider: "magichour", creditCost: 5, modelSlug: "mh-face-swap" },
@@ -63,6 +63,18 @@ export function getToolConfig(tool: ToolType): ToolConfig {
   return TOOL_CONFIG[tool];
 }
 
+// Map DB model slugs to actual API model names
+function resolveModelName(slug?: string): string | undefined {
+  const MODEL_MAP: Record<string, string> = {
+    "nano-banana": "gemini-2.0-flash-exp",
+    "nano-banana-pro": "gemini-2.5-flash-image",
+    "imagen-3": "imagen-4.0-generate-001",
+    "imagen-4": "imagen-4.0-generate-001",
+  };
+  if (!slug) return undefined;
+  return MODEL_MAP[slug] || slug;
+}
+
 // Template generation — fetch hidden prompt, call appropriate model
 export async function generateFromTemplate(
   hiddenPrompt: string,
@@ -75,13 +87,15 @@ export async function generateFromTemplate(
     prompt = `${hiddenPrompt}. ${STYLE_PROMPTS[options.style].suffix}`;
   }
 
-  // Use Imagen 3 for template generation by default
-  if (!options.model || options.model === "imagen-3") {
+  const resolvedModel = resolveModelName(options.model);
+
+  // Use Imagen 4 for template generation by default, or if model is imagen-*
+  if (!resolvedModel || resolvedModel.startsWith("imagen")) {
     return generateWithImagen(prompt, { aspectRatio: options.aspectRatio });
   }
 
   // Use Gemini for other models
-  return generateWithGemini(prompt, { model: options.model });
+  return generateWithGemini(prompt, { model: resolvedModel });
 }
 
 // Free-form text-to-image with style

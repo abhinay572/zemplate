@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 
 const genai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
-// METHOD 1: Imagen 3 — standalone image generation (best for templates)
+// METHOD 1: Imagen 4 — standalone image generation (best for templates)
 export async function generateWithImagen(
   prompt: string,
   options: {
@@ -11,7 +11,7 @@ export async function generateWithImagen(
   } = {}
 ): Promise<{ imageBytes: string; mimeType: string }[]> {
   const response = await genai.models.generateImages({
-    model: "imagen-3.0-generate-002",
+    model: "imagen-4.0-generate-001",
     prompt,
     config: {
       numberOfImages: options.numberOfImages || 1,
@@ -112,14 +112,19 @@ export async function editWithGemini(
 
 // Style preset → prompt suffix mapping
 export const STYLE_PROMPTS: Record<string, { model: string; suffix: string }> = {
-  photorealistic: { model: "imagen-3.0-generate-002", suffix: "photorealistic, 8k, ultra detailed, professional photography" },
+  photorealistic: { model: "imagen-4.0-generate-001", suffix: "photorealistic, 8k, ultra detailed, professional photography" },
   anime: { model: "gemini-2.5-flash-image", suffix: "anime style, vibrant colors, manga illustration" },
   "3d-render": { model: "gemini-2.5-flash-image", suffix: "3D rendered, Pixar style, volumetric lighting" },
-  "oil-painting": { model: "imagen-3.0-generate-002", suffix: "oil painting on canvas, thick brushstrokes, classical" },
+  "oil-painting": { model: "imagen-4.0-generate-001", suffix: "oil painting on canvas, thick brushstrokes, classical" },
   watercolor: { model: "gemini-2.5-flash-image", suffix: "delicate watercolor painting, soft washes" },
   "digital-art": { model: "gemini-2.5-flash-image", suffix: "digital art, concept art, artstation quality" },
   "pixel-art": { model: "gemini-2.5-flash-image", suffix: "pixel art, 16-bit retro game style" },
-  cinematic: { model: "imagen-3.0-generate-002", suffix: "cinematic photography, film grain, 35mm lens" },
+  cinematic: { model: "imagen-4.0-generate-001", suffix: "cinematic photography, film grain, 35mm lens" },
   "pencil-sketch": { model: "gemini-2.5-flash-image", suffix: "pencil sketch, hand drawn, detailed linework" },
   "comic-book": { model: "gemini-2.5-flash-image", suffix: "comic book illustration, bold lines, vivid colors" },
+  // UI style options
+  vibrant: { model: "imagen-4.0-generate-001", suffix: "vibrant saturated colors, high contrast, punchy vivid tones, eye-catching" },
+  muted: { model: "imagen-4.0-generate-001", suffix: "muted desaturated tones, soft pastel palette, understated elegance" },
+  "b&w": { model: "imagen-4.0-generate-001", suffix: "black and white photography, high contrast monochrome, dramatic shadows" },
+  warm: { model: "imagen-4.0-generate-001", suffix: "warm golden tones, amber lighting, cozy warm color temperature" },
 };

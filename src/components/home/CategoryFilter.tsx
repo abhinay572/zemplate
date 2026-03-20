@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Flame, Sparkles, User, Camera, Briefcase, Shirt, Heart, Dog, Dumbbell, Calendar } from "lucide-react";
+import { Flame, Sparkles, User, Camera, Briefcase, Shirt, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const CATEGORIES = [
@@ -12,10 +12,7 @@ const CATEGORIES = [
   { name: "Professional Headshot", icon: Briefcase, slug: "professional-headshot" },
   { name: "Couple Photography", icon: Heart, slug: "couple-photography" },
   { name: "Maternity Photography", icon: Heart, slug: "maternity-photography" },
-  { name: "Pet Photography", icon: Dog, slug: "pet-photography" },
-  { name: "Event Photography", icon: Calendar, slug: "event-photography" },
   { name: "Portrait", icon: Camera, slug: "portrait" },
-  { name: "Fitness", icon: Dumbbell, slug: "fitness" },
 ];
 
 export function CategoryFilter() {

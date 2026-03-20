@@ -20,10 +20,7 @@ const SLUG_TO_CATEGORY: Record<string, string> = {
   "professional-headshot": "Professional Headshot",
   "couple-photography": "Couple Photography",
   "maternity-photography": "Maternity Photography",
-  "pet-photography": "Pet Photography",
-  "event-photography": "Event Photography",
   "portrait": "Portrait",
-  "fitness": "Fitness",
 };
 
 const SkeletonCard = () => (

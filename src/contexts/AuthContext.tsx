@@ -22,21 +22,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (uid: string) => {
-    const p = await getUserProfile(uid);
-    setProfile(p);
+    try {
+      const p = await getUserProfile(uid);
+      setProfile(p);
+    } catch (err) {
+      console.error("Failed to fetch profile:", err);
+      setProfile(null);
+    }
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) fetchProfile(u.id).finally(() => setLoading(false));
-      else setLoading(false);
-    }).catch(() => {
-      setLoading(false);
-    });
+    let mounted = true;
+
+    const initSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        const u = session?.user ?? null;
+        setUser(u);
+        if (u) {
+          await fetchProfile(u.id);
+        }
+      } catch (err) {
+        console.error("Session init error:", err);
+        if (!mounted) return;
+        // If session retrieval fails (lock error etc), clear state
+        setUser(null);
+        setProfile(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
@@ -46,7 +67,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loginWithEmail = async (email: string, password: string) => {

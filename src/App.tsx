@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute, AdminRoute } from "./components/ProtectedRoute";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Home } from "./pages/Home";
 import { Tools } from "./pages/Tools";
 import { Community } from "./pages/Community";
@@ -94,8 +95,10 @@ export default function App() {
     <HelmetProvider>
       <Router>
         <AuthProvider>
-          <AnimatedRoutes />
-          <BottomNav />
+          <ErrorBoundary>
+            <AnimatedRoutes />
+            <BottomNav />
+          </ErrorBoundary>
         </AuthProvider>
       </Router>
     </HelmetProvider>

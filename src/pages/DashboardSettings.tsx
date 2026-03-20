@@ -133,7 +133,7 @@ export function DashboardSettings() {
                     </div>
                     <div>
                       <p className="text-white font-medium">Google</p>
-                      <p className="text-white/50 text-sm">{user?.providerData?.[0]?.providerId === "google.com" ? "Connected" : "Not connected"}</p>
+                      <p className="text-white/50 text-sm">{user?.app_metadata?.provider === "google" ? "Connected" : "Not connected"}</p>
                     </div>
                   </div>
                 </div>

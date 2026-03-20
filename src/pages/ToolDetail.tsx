@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { ArrowLeft, Upload, Sparkles, Zap, Image as ImageIcon, Wand2, Palette, SlidersHorizontal, CheckCircle2, Download, AlertCircle, ArrowUpRight, Video, PenTool, Box, MonitorPlay, PlaySquare, Smile, Layers, Clock } from "lucide-react";
+import { ArrowLeft, Upload, Sparkles, Zap, Image as ImageIcon, Wand2, Palette, SlidersHorizontal, CheckCircle2, Download, AlertCircle, ArrowUpRight, Box, MonitorPlay, Clock } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
@@ -68,13 +68,8 @@ const TOOLS: ToolDef[] = [
     needsPrompt: true,
   },
   { id: "upscaler", toolType: "upscale-4x" as ToolType, title: "AI Upscaler", description: "Enhance image resolution up to 4x without losing quality.", icon: ArrowUpRight, color: "from-emerald-500 to-teal-500", needsUpload: true, needsPrompt: false, comingSoon: true },
-  { id: "ugc-creator", toolType: "text-to-image" as ToolType, title: "UGC Creator", description: "Generate user-generated content style videos with AI avatars.", icon: Video, color: "from-blue-500 to-cyan-500", needsUpload: false, needsPrompt: true, comingSoon: true },
-  { id: "ai-headshot", toolType: "text-to-image" as ToolType, title: "AI Headshot", description: "Create professional corporate headshots from casual selfies.", icon: PenTool, color: "from-violet-500 to-purple-500", needsUpload: true, needsPrompt: false, comingSoon: true },
   { id: "product-photos", toolType: "text-to-image" as ToolType, title: "AI Product Photos", description: "Place your products in stunning AI-generated studio environments.", icon: Box, color: "from-fuchsia-500 to-pink-500", needsUpload: true, needsPrompt: true, comingSoon: true },
   { id: "text-to-video", toolType: "text-to-image" as ToolType, title: "Text to Video", description: "Turn your text prompts into cinematic short videos.", icon: MonitorPlay, color: "from-red-500 to-orange-500", needsUpload: false, needsPrompt: true, comingSoon: true },
-  { id: "image-to-video", toolType: "text-to-image" as ToolType, title: "Image to Video", description: "Animate your static images into dynamic video clips.", icon: PlaySquare, color: "from-yellow-500 to-amber-500", needsUpload: true, needsPrompt: false, comingSoon: true },
-  { id: "ai-avatar", toolType: "text-to-image" as ToolType, title: "AI Avatar", description: "Create custom 3D or 2D avatars based on your photos.", icon: Smile, color: "from-sky-500 to-blue-500", needsUpload: true, needsPrompt: false, comingSoon: true },
-  { id: "batch-generator", toolType: "text-to-image" as ToolType, title: "Batch Generator", description: "Generate hundreds of variations at once for A/B testing.", icon: Layers, color: "from-slate-500 to-gray-500", needsUpload: false, needsPrompt: true, comingSoon: true },
 ];
 
 export function ToolDetail() {
@@ -353,7 +348,7 @@ export function ToolDetail() {
                   <motion.div key="generated" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="absolute inset-0 flex items-center justify-center bg-black/40">
                     <img src={resultUrl} alt="Generated Result" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                   </motion.div>
-                ) : uploadedImage ? (
+                ) : uploadedImage && tool.id !== 'face-swap' ? (
                   <motion.div key="uploaded" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="absolute inset-0 flex flex-col items-center justify-center">
                     <img src={`data:image/png;base64,${uploadedImage}`} alt="Uploaded" className="max-h-[500px] object-contain rounded-xl" />
                     <p className="text-white/50 text-sm mt-4">{uploadedFileName}</p>
@@ -365,9 +360,9 @@ export function ToolDetail() {
                     </div>
                     <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-4 text-center">{tool.title} Workspace</h2>
                     <p className="text-white/60 text-center max-w-md mb-8">
-                      {tool.needsUpload ? "Drag and drop your image here, or click to browse files." : "Enter a prompt in the settings panel to generate your image."}
+                      {tool.id === 'face-swap' ? "Upload a source face and target photo in the settings panel to get started." : tool.needsUpload ? "Drag and drop your image here, or click to browse files." : "Enter a prompt in the settings panel to generate your image."}
                     </p>
-                    {tool.needsUpload && (
+                    {tool.needsUpload && tool.id !== 'face-swap' && (
                       <button onClick={() => fileInputRef.current?.click()} className="px-8 py-4 rounded-xl bg-white/10 border border-white/20 text-white font-medium hover:bg-white/20 transition-all active:scale-95 flex items-center gap-3">
                         <Upload className="w-5 h-5" /> Upload Image
                       </button>
@@ -439,12 +434,7 @@ export function ToolDetail() {
                 </div>
               )}
 
-              {tool.id === 'background-remover' && !uploadedImage && (
-                <div className="p-4 rounded-xl border border-white/10 bg-black/20 text-center">
-                  <p className="text-sm text-white/60 mb-3">Upload an image to remove its background</p>
-                  <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-all active:scale-95">Select Image</button>
-                </div>
-              )}
+              {/* BG remover uses the main workspace upload - no duplicate needed */}
 
               {profile && (
                 <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 text-sm">

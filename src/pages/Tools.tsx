@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { Image, User, Scissors, ArrowUpRight, Video, PenTool, Box, MonitorPlay, PlaySquare, Palette, Smile, Layers, Zap } from "lucide-react";
+import { Image, User, Scissors, ArrowUpRight, Box, MonitorPlay, Palette, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -13,14 +13,9 @@ const TOOLS = [
   { id: "face-swap", name: "AI Face Swap", icon: User, description: "Seamlessly swap faces in photos with incredible realism.", cost: 2, color: "from-pink-500 to-rose-500" },
   { id: "background-remover", name: "AI Background Remover", icon: Scissors, description: "Remove backgrounds instantly with pixel-perfect precision.", cost: 1, color: "from-orange-500 to-amber-500" },
   { id: "upscaler", name: "AI Upscaler", icon: ArrowUpRight, description: "Enhance image resolution up to 4x without losing quality.", cost: 2, color: "from-emerald-500 to-teal-500" },
-  { id: "ugc-creator", name: "UGC Creator", icon: Video, description: "Generate user-generated content style videos with AI avatars.", cost: 5, color: "from-blue-500 to-cyan-500" },
-  { id: "ai-headshot", name: "AI Headshot", icon: PenTool, description: "Create professional corporate headshots from casual selfies.", cost: 3, color: "from-violet-500 to-purple-500" },
   { id: "product-photos", name: "AI Product Photos", icon: Box, description: "Place your products in stunning AI-generated studio environments.", cost: 2, color: "from-fuchsia-500 to-pink-500" },
   { id: "text-to-video", name: "Text to Video", icon: MonitorPlay, description: "Turn your text prompts into cinematic short videos.", cost: 10, color: "from-red-500 to-orange-500" },
-  { id: "image-to-video", name: "Image to Video", icon: PlaySquare, description: "Animate your static images into dynamic video clips.", cost: 8, color: "from-yellow-500 to-amber-500" },
   { id: "logo-maker", name: "AI Logo Maker", icon: Palette, description: "Design unique logos for your brand in minutes.", cost: 2, color: "from-lime-500 to-green-500" },
-  { id: "ai-avatar", name: "AI Avatar", icon: Smile, description: "Create custom 3D or 2D avatars based on your photos.", cost: 3, color: "from-sky-500 to-blue-500" },
-  { id: "batch-generator", name: "Batch Generator", icon: Layers, description: "Generate hundreds of variations at once for A/B testing.", cost: "Var", color: "from-slate-500 to-gray-500" },
 ];
 
 const SkeletonToolCard = () => (

@@ -8,19 +8,9 @@ import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { useState, useEffect } from "react";
 import { getCommunityPosts, type CommunityPost } from "@/lib/firestore/community";
 
-const TOP_CREATORS = [
-  { name: "Alex Chen", handle: "@alexc", avatar: "https://picsum.photos/seed/a1/100/100", followers: "12.4k", rank: 1 },
-  { name: "Sarah Jenkins", handle: "@sarahj", avatar: "https://picsum.photos/seed/a2/100/100", followers: "8.9k", rank: 2 },
-  { name: "David Kim", handle: "@dkim", avatar: "https://picsum.photos/seed/a3/100/100", followers: "7.2k", rank: 3 },
-  { name: "Emma Watson", handle: "@emmaw", avatar: "https://picsum.photos/seed/a4/100/100", followers: "6.5k", rank: 4 },
-];
+const TOP_CREATORS: any[] = [];
 
-const FALLBACK_TEMPLATES = [
-  { id: "c1", title: "Neon Cyberpunk Portrait", author: { name: "Alex Chen", avatar: "https://picsum.photos/seed/a1/100/100" }, image: "https://picsum.photos/seed/c1/600/800", likes: 3400, uses: 12000, aspectRatio: "portrait" as const, cost: 1 },
-  { id: "c2", title: "Minimalist Architecture", author: { name: "Sarah Jenkins", avatar: "https://picsum.photos/seed/a2/100/100" }, image: "https://picsum.photos/seed/c2/800/600", likes: 2800, uses: 9500, aspectRatio: "landscape" as const, cost: 1 },
-  { id: "c3", title: "Fantasy Character Concept", author: { name: "David Kim", avatar: "https://picsum.photos/seed/a3/100/100" }, image: "https://picsum.photos/seed/c3/600/800", likes: 5600, uses: 18000, aspectRatio: "portrait" as const, cost: 2 },
-  { id: "c4", title: "Vintage Film Look", author: { name: "Emma Watson", avatar: "https://picsum.photos/seed/a4/100/100" }, image: "https://picsum.photos/seed/c4/600/600", likes: 1900, uses: 6200, aspectRatio: "square" as const, cost: 1 },
-];
+const FALLBACK_TEMPLATES: any[] = [];
 
 export function Community() {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -90,6 +80,12 @@ export function Community() {
                   Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="break-inside-avoid aspect-[3/4] rounded-2xl bg-surface border border-white/5 animate-pulse" />
                   ))
+                ) : templates.length === 0 ? (
+                  <div className="col-span-full text-center py-20">
+                    <Users className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                    <p className="text-white/50 text-lg mb-2">Community posts coming soon!</p>
+                    <p className="text-white/30 text-sm">Be the first to share your AI creations.</p>
+                  </div>
                 ) : (
                   templates.map((template) => (
                     <div key={template.id} className="break-inside-avoid">
@@ -106,31 +102,9 @@ export function Community() {
                   <Trophy className="w-5 h-5 text-yellow-500" />
                   <h3 className="text-xl font-display font-semibold text-white">Top Creators</h3>
                 </div>
-                <div className="space-y-4">
-                  {TOP_CREATORS.map((creator) => (
-                    <div key={creator.handle} className="flex items-center justify-between group cursor-pointer p-2 -mx-2 rounded-xl hover:bg-white/5 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <img src={creator.avatar} alt={creator.name} className="w-10 h-10 rounded-full object-cover border border-white/10" referrerPolicy="no-referrer" />
-                          {creator.rank === 1 && (
-                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center border-2 border-surface">
-                              <Star className="w-2 h-2 text-white fill-white" />
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-white group-hover:text-primary transition-colors">{creator.name}</p>
-                          <p className="text-xs text-white/50">{creator.handle}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-medium text-white/80">{creator.followers}</p>
-                        <p className="text-[10px] text-white/40 uppercase tracking-wider">Followers</p>
-                      </div>
-                    </div>
-                  ))}
+                <div className="text-center py-6">
+                  <p className="text-white/40 text-sm">Creator leaderboard coming soon!</p>
                 </div>
-                <button className="w-full mt-6 py-2 rounded-xl border border-white/10 text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors">View Leaderboard</button>
               </div>
             </div>
           </div>

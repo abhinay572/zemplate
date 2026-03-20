@@ -159,7 +159,7 @@ export async function getPublicTemplates(options: {
   const sortCol = options.sortBy === "usageCount" ? "usage_count"
     : options.sortBy === "likesCount" ? "likes_count" : "created_at";
 
-  let q = supabase.from("templates").select("*").eq("status", "published").order(sortCol, { ascending: false });
+  let q = supabase.from("templates").select("id,title,slug,category,model,model_slug,credit_cost,aspect_ratio,tags,image_url,status,usage_count,likes_count,author_name,author_avatar,created_at,updated_at").eq("status", "published").order(sortCol, { ascending: false });
 
   if (options.category && options.category !== "All") {
     q = q.eq("category", options.category);
@@ -202,7 +202,7 @@ export async function getAdminTemplates(options: {
 export async function getTrendingTemplates(count: number = 10): Promise<PublicTemplate[]> {
   const { data, error } = await supabase
     .from("templates")
-    .select("*")
+    .select("id,title,slug,category,model,model_slug,credit_cost,aspect_ratio,tags,image_url,status,usage_count,likes_count,author_name,author_avatar,created_at,updated_at")
     .eq("status", "published")
     .order("usage_count", { ascending: false })
     .limit(count);
@@ -216,7 +216,7 @@ export async function searchTemplates(searchTerm: string): Promise<PublicTemplat
 
   const { data, error } = await supabase
     .from("templates")
-    .select("*")
+    .select("id,title,slug,category,model,model_slug,credit_cost,aspect_ratio,tags,image_url,status,usage_count,likes_count,author_name,author_avatar,created_at,updated_at")
     .eq("status", "published")
     .ilike("title", `%${term}%`)
     .order("usage_count", { ascending: false })

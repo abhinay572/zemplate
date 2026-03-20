@@ -38,7 +38,7 @@ export function TemplateDetail() {
   const [isGenerated, setIsGenerated] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [selectedRatio, setSelectedRatio] = useState("4:5");
+  const [selectedRatio, setSelectedRatio] = useState("3:4");
   const [selectedStyle, setSelectedStyle] = useState("Original");
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -297,7 +297,7 @@ export function TemplateDetail() {
               <div className="space-y-3">
                 <label className="text-sm font-medium text-white/70">Aspect Ratio</label>
                 <div className="grid grid-cols-4 gap-2">
-                  {['1:1', '4:5', '9:16', '16:9'].map(ratio => (
+                  {['1:1', '3:4', '9:16', '16:9'].map(ratio => (
                     <button key={ratio} onClick={() => setSelectedRatio(ratio)} className={`py-2 rounded-lg border text-sm font-medium transition-all active:scale-95 ${selectedRatio === ratio ? 'bg-primary/20 border-primary text-primary shadow-[0_0_10px_rgba(124,58,237,0.3)]' : 'bg-black/20 border-white/10 text-white/60 hover:border-white/30 hover:text-white hover:bg-white/5'}`}>
                       {ratio}
                     </button>

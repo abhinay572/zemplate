@@ -82,9 +82,10 @@ export async function generateFromTemplate(
 ): Promise<{ imageBytes: string; mimeType: string }[]> {
   let prompt = hiddenPrompt;
 
-  // Merge style if provided
-  if (options.style && STYLE_PROMPTS[options.style]) {
-    prompt = `${hiddenPrompt}. ${STYLE_PROMPTS[options.style].suffix}`;
+  // Merge style if provided (normalize to lowercase for lookup)
+  const styleKey = options.style?.toLowerCase();
+  if (styleKey && STYLE_PROMPTS[styleKey]) {
+    prompt = `${hiddenPrompt}. ${STYLE_PROMPTS[styleKey].suffix}`;
   }
 
   const resolvedModel = resolveModelName(options.model);
@@ -106,9 +107,10 @@ export async function generateImage(
   let finalPrompt = prompt;
   let model = "gemini-2.5-flash-image";
 
-  if (options.style && STYLE_PROMPTS[options.style]) {
-    finalPrompt = `${prompt}. ${STYLE_PROMPTS[options.style].suffix}`;
-    model = STYLE_PROMPTS[options.style].model;
+  const sKey = options.style?.toLowerCase();
+  if (sKey && STYLE_PROMPTS[sKey]) {
+    finalPrompt = `${prompt}. ${STYLE_PROMPTS[sKey].suffix}`;
+    model = STYLE_PROMPTS[sKey].model;
   }
 
   if (model.startsWith("imagen")) {

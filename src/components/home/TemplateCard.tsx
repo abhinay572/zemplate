@@ -1,6 +1,7 @@
 import { Heart, Play, Download, Maximize2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 
 interface TemplateCardProps {
   id: string;
@@ -16,19 +17,50 @@ interface TemplateCardProps {
   cost?: number;
 }
 
+// Append Supabase image transform params for thumbnails
+function thumbnailUrl(url: string, width = 400): string {
+  if (!url || !url.includes("supabase.co/storage")) return url;
+  // Try Supabase image transforms (works on Pro+), falls back gracefully on Free
+  try {
+    const u = new URL(url);
+    u.pathname = u.pathname.replace(
+      "/storage/v1/object/public/",
+      "/storage/v1/render/image/public/"
+    );
+    u.searchParams.set("width", String(width));
+    u.searchParams.set("quality", "75");
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 export function TemplateCard({ id, title, author, image, likes, uses, aspectRatio = "portrait", cost = 1 }: TemplateCardProps) {
+  const [loaded, setLoaded] = useState(false);
+  const [src, setSrc] = useState(() => thumbnailUrl(image, 400));
+
   return (
     <div className="group relative rounded-2xl overflow-hidden bg-surface border border-white/5 hover:border-white/20 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(124,58,237,0.15)] hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] focus-within:ring-2 focus-within:ring-primary">
       {/* Image Container — uniform 3:4 for all cards */}
       <div className="relative w-full overflow-hidden bg-white/5 aspect-[3/4]">
+        {/* Low-quality placeholder bg */}
+        {!loaded && (
+          <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/10 animate-pulse" />
+        )}
         <img
-          src={image}
+          src={src}
           alt={title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          className={cn(
+            "w-full h-full object-cover transition-all duration-500 group-hover:scale-110",
+            loaded ? "opacity-100" : "opacity-0"
+          )}
           referrerPolicy="no-referrer"
           loading="lazy"
+          decoding="async"
+          onLoad={() => setLoaded(true)}
+          onError={() => { if (src !== image) setSrc(image); }}
         />
-        
+
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all duration-300 flex flex-col justify-between p-4">
           <div className="flex justify-end gap-2 transform translate-y-[-10px] group-hover:translate-y-0 transition-transform duration-300">
@@ -39,7 +71,7 @@ export function TemplateCard({ id, title, author, image, likes, uses, aspectRati
               <Maximize2 className="w-4 h-4" />
             </Link>
           </div>
-          
+
           <div className="flex flex-col items-center justify-center w-full transform translate-y-4 group-hover:translate-y-0 focus-within:translate-y-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 duration-300">
             <div className="text-white/60 text-xs mb-3 font-medium tracking-wide">
               Prompt hidden — Click Try to generate
@@ -61,7 +93,7 @@ export function TemplateCard({ id, title, author, image, likes, uses, aspectRati
         <h3 className="font-display font-semibold text-white/90 text-sm md:text-base line-clamp-1 mb-2 group-hover:text-primary transition-colors">
           {title}
         </h3>
-        
+
         <div className="flex items-center justify-between mt-3">
           <div className="flex items-center gap-2">
             <img src={author.avatar} alt={author.name} className="w-5 h-5 rounded-full object-cover border border-white/10" referrerPolicy="no-referrer" loading="lazy" />
@@ -69,7 +101,7 @@ export function TemplateCard({ id, title, author, image, likes, uses, aspectRati
               {author.name}
             </span>
           </div>
-          
+
           <div className="flex items-center gap-3 text-xs font-mono text-white/40">
             <div className="flex items-center gap-1" aria-label={`${likes} likes`}>
               <Heart className="w-3 h-3 group-hover:text-pink-500/50 transition-colors" />

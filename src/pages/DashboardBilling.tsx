@@ -24,7 +24,11 @@ export function DashboardBilling() {
 
   useEffect(() => {
     if (!user) return;
-    getUserTransactions(user.id, { limitCount: 20 })
+    // Race against a timeout to avoid infinite loading from auth lock contention
+    Promise.race([
+      getUserTransactions(user.id, { limitCount: 20 }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000)),
+    ])
       .then(({ transactions: t }) => setTransactions(t))
       .catch(console.error)
       .finally(() => setIsLoading(false));

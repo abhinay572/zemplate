@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabasePublicPublic } from "@/lib/supabasePublic";
 
 const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY;
 const BREVO_LIST_ID = Number(import.meta.env.VITE_BREVO_LIST_ID) || 2;
@@ -39,30 +39,30 @@ async function addToBrevo(email: string, name: string): Promise<void> {
 export async function subscribeNewsletter(email: string, name: string = ""): Promise<void> {
   const docId = email.replace(/[^a-zA-Z0-9]/g, "_");
   await Promise.all([
-    supabase.from("newsletter_subscribers").upsert({ id: docId, email, name }),
+    supabasePublic.from("newsletter_subscribers").upsert({ id: docId, email, name }),
     addToBrevo(email, name),
   ]);
 }
 
 export async function unsubscribeNewsletter(email: string): Promise<void> {
   const docId = email.replace(/[^a-zA-Z0-9]/g, "_");
-  await supabase.from("newsletter_subscribers").delete().eq("id", docId);
+  await supabasePublic.from("newsletter_subscribers").delete().eq("id", docId);
 }
 
 export async function isSubscribed(email: string): Promise<boolean> {
   const docId = email.replace(/[^a-zA-Z0-9]/g, "_");
-  const { data } = await supabase.from("newsletter_subscribers").select("id").eq("id", docId).single();
+  const { data } = await supabasePublic.from("newsletter_subscribers").select("id").eq("id", docId).single();
   return !!data;
 }
 
 export async function getAllSubscribers(): Promise<NewsletterSubscriber[]> {
-  const { data, error } = await supabase.from("newsletter_subscribers").select("*");
+  const { data, error } = await supabasePublic.from("newsletter_subscribers").select("*");
   if (error) return [];
   return (data || []).map(mapRow);
 }
 
 export async function getSubscriberCount(): Promise<number> {
-  const { count, error } = await supabase.from("newsletter_subscribers").select("*", { count: "exact", head: true });
+  const { count, error } = await supabasePublic.from("newsletter_subscribers").select("*", { count: "exact", head: true });
   if (error) return 0;
   return count || 0;
 }

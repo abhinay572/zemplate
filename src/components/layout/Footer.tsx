@@ -76,19 +76,19 @@ export function Footer() {
               Create Stunning AI Images in One Click — No Prompting Skills Needed.
             </p>
             <div className="flex flex-wrap items-center gap-4">
-              <a href="#" className="text-white/40 hover:text-white transition-colors" aria-label="Instagram">
+              <a href="https://www.instagram.com/zemplate.ai" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors" aria-label="Instagram">
                 <Instagram className="w-5 h-5" />
               </a>
-              <a href="#" className="text-white/40 hover:text-white transition-colors" aria-label="Facebook">
+              <a href="https://www.facebook.com/zemplate.ai" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors" aria-label="Facebook">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="text-white/40 hover:text-white transition-colors" aria-label="Twitter/X">
+              <a href="https://x.com/zemplate_ai" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors" aria-label="Twitter/X">
                 <Twitter className="w-5 h-5" />
               </a>
-              <a href="#" className="text-white/40 hover:text-white transition-colors" aria-label="YouTube">
+              <a href="https://www.youtube.com/@zemplate" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors" aria-label="YouTube">
                 <Youtube className="w-5 h-5" />
               </a>
-              <a href="#" className="text-white/40 hover:text-white transition-colors" aria-label="LinkedIn">
+              <a href="https://www.linkedin.com/company/zemplate" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors" aria-label="LinkedIn">
                 <Linkedin className="w-5 h-5" />
               </a>
             </div>

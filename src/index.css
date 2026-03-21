@@ -17,6 +17,9 @@
 }
 
 @layer base {
+  :root {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-white font-sans antialiased selection:bg-primary/30;
   }

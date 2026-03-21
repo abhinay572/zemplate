@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MOCK_TEMPLATES } from "@/data/mockData";
@@ -31,6 +31,7 @@ interface TemplateDisplay {
 
 export function TemplateDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const [template, setTemplate] = useState<TemplateDisplay | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -189,6 +190,10 @@ export function TemplateDetail() {
 
   const handleLike = async () => {
     if (!id) return;
+    if (!user) {
+      navigate("/login");
+      return;
+    }
     if (liked) {
       setLiked(false);
       setLikeCount((c) => Math.max(0, c - 1));

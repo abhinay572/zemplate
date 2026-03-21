@@ -2,8 +2,16 @@ import { supabase } from "@/lib/supabase";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
+async function getSessionWithTimeout(timeoutMs = 5000) {
+  const result = await Promise.race([
+    supabase.auth.getSession(),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Auth session timed out. Please refresh and try again.")), timeoutMs)),
+  ]);
+  return result.data.session;
+}
+
 async function magicHourProxyFetch(endpoint: string, body: any) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const session = await getSessionWithTimeout();
   if (!session) throw new Error("You must be logged in to use this feature.");
 
   const response = await fetch(`${SUPABASE_URL}/functions/v1/magichour-proxy`, {
@@ -28,7 +36,7 @@ async function pollForResult(
   maxAttempts: number = 60,
   intervalMs: number = 3000
 ): Promise<any> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const session = await getSessionWithTimeout();
   if (!session) throw new Error("You must be logged in to use this feature.");
 
   for (let i = 0; i < maxAttempts; i++) {

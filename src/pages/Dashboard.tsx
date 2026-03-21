@@ -15,7 +15,10 @@ export function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
-    getUserGenerations(user.id, { limitCount: 4 })
+    Promise.race([
+      getUserGenerations(user.id, { limitCount: 4 }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000)),
+    ])
       .then(({ generations }) => setRecentGens(generations))
       .catch(console.error)
       .finally(() => setIsLoading(false));

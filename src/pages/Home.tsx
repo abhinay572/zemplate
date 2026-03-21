@@ -36,10 +36,11 @@ export function Home() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col pt-16">
-      <SEO 
-        title="AI Image Generator & Templates"
-        description="Create stunning, professional AI images in seconds with Zemplate.ai. No prompting required. Just select a template and generate."
+      <SEO
+        title="AI Image Generator & Templates — Create Stunning Images in Seconds"
+        description="Create stunning, professional AI images in seconds with Zemplate.ai. No prompting required. Choose from 1000+ templates for social media, marketing, logos, and more. Free to start."
         canonical="https://zemplate.ai/"
+        keywords="AI image generator, AI templates, AI photo generator, text to image, AI art, AI logo maker, face swap AI, background remover, AI image editor, free AI image tool, Zemplate"
         jsonLd={[generateOrganizationSchema()]}
       />
       <Navbar />

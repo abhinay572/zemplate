@@ -1,4 +1,4 @@
-import { supabasePublicPublic } from "@/lib/supabasePublic";
+import { supabasePublic } from "@/lib/supabase";
 
 const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY;
 const BREVO_LIST_ID = Number(import.meta.env.VITE_BREVO_LIST_ID) || 2;

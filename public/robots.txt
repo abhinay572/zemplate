@@ -1,0 +1,20 @@
+# Zemplate.ai - AI Image Template Marketplace
+User-agent: *
+Allow: /
+Allow: /blog/
+Allow: /templates/
+Allow: /tools/
+Allow: /pricing
+Allow: /community
+
+# Disallow private/dashboard routes
+Disallow: /dashboard/
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://zemplate.ai/sitemap.xml
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1

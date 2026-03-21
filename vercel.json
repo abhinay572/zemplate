@@ -4,6 +4,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/sitemap.xml", "destination": "https://midhyxpnmdsnuowhfntg.supabase.co/functions/v1/sitemap" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

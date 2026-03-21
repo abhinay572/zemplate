@@ -30,6 +30,7 @@ import { Category } from "./pages/Category";
 import { Legal } from "./pages/Legal";
 import { Comparison } from "./pages/Comparison";
 import { FreeTool } from "./pages/FreeTool";
+import { BlogPost } from "./pages/BlogPost";
 import { SuperAdmin } from "./pages/SuperAdmin";
 import { SuperAdminTemplates } from "./pages/SuperAdminTemplates";
 import { SuperAdminModels } from "./pages/SuperAdminModels";
@@ -58,6 +59,7 @@ function AnimatedRoutes() {
           <Route path="/tools/:id" element={<ToolDetail />} />
           <Route path="/community" element={<Community />} />
           <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />

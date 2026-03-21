@@ -21,7 +21,72 @@ const SLUG_TO_CATEGORY: Record<string, string> = {
   "couple-photography": "Couple Photography",
   "maternity-photography": "Maternity Photography",
   "portrait": "Portrait",
+  "pet-photography": "Pet Photography",
+  "event-photography": "Event Photography",
+  "food-photography": "Food Photography",
+  "real-estate": "Real Estate",
+  "fitness-sports": "Fitness & Sports",
+  "fashion-editorial": "Fashion Editorial",
+  "travel-photography": "Travel Photography",
+  "product-photography": "Product Photography",
+  "social-media-content": "Social Media Content",
+  "art-illustration": "Art & Illustration",
+  "holiday-seasonal": "Holiday & Seasonal",
+  "anime-fantasy": "Anime & Fantasy",
+  "vintage-retro": "Vintage & Retro",
+  "cinematic": "Cinematic",
 };
+
+// SEO metadata per category for programmatic SEO
+const CATEGORY_SEO: Record<string, { keywords: string; description: string; faq: { q: string; a: string }[] }> = {
+  "Baby Photography": {
+    keywords: "AI baby photo, newborn photography templates, baby portrait generator, AI baby images, infant photo editor",
+    description: "Transform your baby photos into professional newborn portraits with AI. Soft lighting, dreamy bokeh, and magazine-quality results in seconds.",
+    faq: [
+      { q: "Can I use AI to enhance my baby's photos?", a: "Yes! Zemplate's AI baby photography templates apply professional studio lighting, soft skin tones, and dreamy backgrounds to transform your snapshots into magazine-quality newborn portraits." },
+      { q: "Are AI baby photo templates safe to use?", a: "Absolutely. Your photos are processed securely and never shared. The AI only applies style transformations like lighting and color grading." },
+    ],
+  },
+  "Wedding Photography": {
+    keywords: "AI wedding photos, wedding photography templates, wedding photo editor AI, bridal portrait generator, wedding album AI",
+    description: "Create breathtaking wedding photos with AI. From romantic golden hour edits to dramatic black & white, transform your wedding memories into art.",
+    faq: [
+      { q: "How can AI improve my wedding photos?", a: "Zemplate's wedding templates apply professional color grading, cinematic lighting, and romantic tones to turn casual wedding snaps into stunning album-worthy images." },
+      { q: "Can I use these for my wedding album?", a: "Yes! The high-resolution outputs are perfect for printing in wedding albums, framing, or sharing on social media." },
+    ],
+  },
+  "Professional Headshot": {
+    keywords: "AI headshot generator, professional headshot AI, LinkedIn photo AI, corporate headshot template, business portrait generator",
+    description: "Generate polished, professional headshots for LinkedIn, corporate websites, and resumes. Studio-quality results from any selfie.",
+    faq: [
+      { q: "Can AI create a professional headshot from a selfie?", a: "Yes! Upload any clear photo of yourself and our AI will transform it with professional studio lighting, clean backgrounds, and corporate-ready styling." },
+      { q: "Are AI headshots good enough for LinkedIn?", a: "Absolutely. Our headshot templates are specifically designed for LinkedIn and professional platforms with proper framing, lighting, and resolution." },
+    ],
+  },
+  "Portrait": {
+    keywords: "AI portrait generator, portrait photography AI, AI photo portrait, artistic portrait templates, portrait enhancement AI",
+    description: "Create stunning AI-enhanced portraits with professional lighting, artistic styles, and editorial quality. From moody to vibrant, find your perfect look.",
+    faq: [
+      { q: "What styles of AI portraits can I create?", a: "We offer dozens of portrait styles including editorial, fine art, moody cinematic, vibrant color-pop, vintage film, anime-style, and many more." },
+      { q: "Do I need photography skills?", a: "No! Just upload any clear photo and select a template. The AI handles all the complex lighting, color grading, and style transformations." },
+    ],
+  },
+  "Couple Photography": {
+    keywords: "AI couple photos, romantic photo templates, couple portrait AI, engagement photo generator, love photo editor AI",
+    description: "Transform your couple photos into romantic masterpieces. Golden hour glow, intimate studio portraits, and cinematic love stories powered by AI.",
+    faq: [
+      { q: "Can AI make our couple photos look professional?", a: "Yes! Our couple photography templates apply romantic lighting, warm tones, and professional editing to transform casual photos into stunning couple portraits." },
+    ],
+  },
+};
+
+function getCategorySEO(name: string) {
+  return CATEGORY_SEO[name] || {
+    keywords: `AI ${name.toLowerCase()} templates, ${name.toLowerCase()} photo generator, AI ${name.toLowerCase()} images`,
+    description: `Create stunning ${name.toLowerCase()} images in seconds with AI. Professional quality, no prompting required.`,
+    faq: [],
+  };
+}
 
 const SkeletonCard = () => (
   <div className="rounded-2xl bg-surface border border-white/5 overflow-hidden animate-pulse">
@@ -65,13 +130,35 @@ export function Category() {
   }, [category, sortBy]);
 
   const displayName = formattedCategory || "All Templates";
+  const catSEO = getCategorySEO(formattedCategory);
+
+  const collectionSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${displayName} AI Templates`,
+    description: catSEO.description,
+    url: `https://zemplate.ai/templates/${category || ""}`,
+    publisher: { "@type": "Organization", name: "Zemplate.ai" },
+  };
+
+  const faqSchema = catSEO.faq.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: catSEO.faq.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  } : null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col pt-16">
       <SEO
-        title={`Best AI ${displayName} Templates | Zemplate.ai`}
-        description={`Create stunning, professional ${displayName.toLowerCase()} images in seconds. No prompting skills required. Just select a template, customize, and generate.`}
-        canonical={`https://zemplate.ai/templates/${category || ''}`}
+        title={`Best AI ${displayName} Templates — Free to Try`}
+        description={catSEO.description}
+        keywords={catSEO.keywords}
+        canonical={`https://zemplate.ai/templates/${category || ""}`}
+        jsonLd={[collectionSchema, ...(faqSchema ? [faqSchema] : [])]}
       />
       <Navbar />
 
@@ -167,6 +254,23 @@ export function Category() {
             </p>
           </div>
         </div>
+
+        {/* FAQ Section — Programmatic SEO */}
+        {catSEO.faq.length > 0 && (
+          <div className="mt-12 max-w-4xl mx-auto bg-surface border border-white/5 rounded-3xl p-8 md:p-12">
+            <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-8">
+              Frequently Asked Questions
+            </h2>
+            <div className="space-y-6">
+              {catSEO.faq.map((f, i) => (
+                <div key={i} className="border-b border-white/5 pb-6 last:border-0 last:pb-0">
+                  <h3 className="text-lg font-bold text-white mb-3">{f.q}</h3>
+                  <p className="text-white/60">{f.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       <Footer />

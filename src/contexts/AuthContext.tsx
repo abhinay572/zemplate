@@ -158,14 +158,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const logout = useCallback(async () => {
+    // Race signOut against a timeout — supabase-js auth lock can hang forever
     try {
-      await supabase.auth.signOut();
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("signOut timeout")), 3000)),
+      ]);
     } catch (err) {
-      console.error("Sign out API error:", err);
+      console.error("Sign out error (will clear local state anyway):", err);
     }
-    // Always clear local state even if the API call fails
+    // Always clear local state even if the API call fails or times out
     setUser(null);
     setProfile(null);
+    // Clear any Supabase tokens from storage so stale session doesn't persist
+    try {
+      localStorage.removeItem("sb-midhyxpnmdsnuowhfntg-auth-token");
+    } catch {}
   }, []);
 
   const refreshProfile = async () => {

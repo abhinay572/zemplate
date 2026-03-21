@@ -50,7 +50,7 @@ export function Blog() {
       <Navbar />
       <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="mb-8 max-w-3xl mx-auto">
-          <Breadcrumbs items={[{ name: "Blog", href: "/blog" }]} />
+          <Breadcrumbs items={[{ label: "Blog", href: "/blog" }]} />
         </div>
         <div className="text-center max-w-3xl mx-auto mb-12">
           <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">Zemplate Blog</h1>

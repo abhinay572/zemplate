@@ -12,7 +12,10 @@ import {
   HelpCircle,
   Settings,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const SIDEBAR_LINKS = [
@@ -32,10 +35,33 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="flex-1 flex max-w-[1600px] w-full mx-auto">
-      <aside className="w-64 hidden lg:flex flex-col border-r border-white/10 bg-surface/50 p-6 space-y-8">
+      {/* Mobile Dashboard Menu Toggle */}
+      <div className="lg:hidden fixed top-[4.5rem] left-4 z-40">
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="bg-surface border border-white/10 rounded-full p-2.5 shadow-lg hover:bg-white/10 transition-colors"
+        >
+          {mobileMenuOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+        </button>
+      </div>
+
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-30 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        </div>
+      )}
+
+      {/* Sidebar — visible on desktop, slide-in on mobile */}
+      <aside className={`w-64 flex-col border-r border-white/10 bg-surface/50 p-6 space-y-8 ${
+        mobileMenuOpen
+          ? "fixed inset-y-0 left-0 z-40 pt-20 flex lg:relative lg:pt-6"
+          : "hidden lg:flex"
+      }`}>
         <div className="flex items-center gap-4">
           {profile?.avatar ? (
             <img src={profile.avatar} alt="User" className="w-12 h-12 rounded-full border border-white/20" referrerPolicy="no-referrer" />
@@ -57,6 +83,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <Link
                 key={link.label}
                 to={link.href}
+                onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all active:scale-95 ${
                   isActive
                     ? "bg-primary/10 text-primary"

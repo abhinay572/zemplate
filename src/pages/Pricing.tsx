@@ -4,11 +4,24 @@ import { Check, Zap, CreditCard, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SEO } from "@/components/seo/SEO";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { detectCurrency, formatPrice, type CurrencyInfo } from "@/lib/currency";
 
-const PLANS = [
+interface Plan {
+  name: string;
+  inrPrice: number;
+  period?: string;
+  description: string;
+  features: string[];
+  cta: string;
+  href: string;
+  popular: boolean;
+}
+
+const PLANS: Plan[] = [
   {
     name: "Free",
-    price: "₹0",
+    inrPrice: 0,
     description: "Perfect for trying out Zemplate.ai",
     features: [
       "5 Free Credits on signup",
@@ -23,7 +36,7 @@ const PLANS = [
   },
   {
     name: "Pro",
-    price: "₹499",
+    inrPrice: 499,
     period: "/month",
     description: "For creators who need unlimited power",
     features: [
@@ -41,7 +54,7 @@ const PLANS = [
   },
   {
     name: "Pay As You Go",
-    price: "₹99",
+    inrPrice: 99,
     period: "/10 credits",
     description: "Flexible credits that never expire",
     features: [
@@ -58,9 +71,15 @@ const PLANS = [
 ];
 
 export function Pricing() {
+  const [currency, setCurrency] = useState<CurrencyInfo>({ symbol: "₹", code: "INR", rate: 1 });
+
+  useEffect(() => {
+    detectCurrency().then(setCurrency);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background flex flex-col pt-16">
-      <SEO 
+      <SEO
         title="Pricing Plans - Free & Pro | Zemplate.ai"
         description="Simple, transparent pricing for AI image generation. Start for free, or upgrade to Pro for unlimited generations and commercial rights."
         canonical="https://zemplate.ai/pricing"
@@ -98,7 +117,9 @@ export function Pricing() {
                 <h3 className="text-xl font-display font-semibold text-white mb-2">{plan.name}</h3>
                 <p className="text-white/60 text-sm mb-6 h-10">{plan.description}</p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-display font-bold text-white">{plan.price}</span>
+                  <span className="text-4xl font-display font-bold text-white">
+                    {plan.inrPrice === 0 ? "Free" : formatPrice(plan.inrPrice, currency)}
+                  </span>
                   {plan.period && <span className="text-white/60">{plan.period}</span>}
                 </div>
               </div>
@@ -142,7 +163,6 @@ export function Pricing() {
             </div>
           </div>
           <div className="flex gap-4 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-            {/* Placeholder for payment logos */}
             <span className="font-bold tracking-wider">UPI</span>
             <span className="font-bold tracking-wider">VISA</span>
             <span className="font-bold tracking-wider">Mastercard</span>

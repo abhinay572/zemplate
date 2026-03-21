@@ -64,9 +64,9 @@ export function BlogPost() {
   }
 
   const breadcrumbs = [
-    { name: "Home", href: "/" },
-    { name: "Blog", href: "/blog" },
-    { name: post.title },
+    { label: "Home", href: "/" },
+    { label: "Blog", href: "/blog" },
+    { label: post.title, href: `/blog/${post.slug}` },
   ];
 
   const articleSchema = {

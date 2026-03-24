@@ -1,20 +1,73 @@
 # Zemplate.ai - AI Image Template Marketplace
+# https://zemplate.ai
+
+# Default rules for all crawlers
 User-agent: *
 Allow: /
 Allow: /blog/
+Allow: /blog/*
 Allow: /templates/
+Allow: /template/*
 Allow: /tools/
+Allow: /tools/*
 Allow: /pricing
 Allow: /community
+Allow: /category/*
+Allow: /compare/*
+Allow: /prompts/*
 
-# Disallow private/dashboard routes
+# Private/authenticated areas - do not crawl
 Disallow: /dashboard/
+Disallow: /dashboard/*
 Disallow: /login
 Disallow: /signup
 Disallow: /api/
+Disallow: /admin/
+Disallow: /super-admin/
+Disallow: /super-admin/*
 
-# Sitemap
-Sitemap: https://zemplate.ai/sitemap.xml
+# Block crawling of internal query params and fragments
+Disallow: /*?*sort=
+Disallow: /*?*page=
+Disallow: /*?*filter=
 
-# Crawl-delay for polite crawling
+# Google-specific rules
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Bing-specific rules
+User-agent: Bingbot
+Allow: /
 Crawl-delay: 1
+
+# Block AI training crawlers from scraping content
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: FacebookBot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+# Sitemap location
+Sitemap: https://zemplate.ai/sitemap.xml

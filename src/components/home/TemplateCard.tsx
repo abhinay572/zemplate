@@ -1,7 +1,7 @@
 import { Heart, Play, Download, Maximize2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 interface TemplateCardProps {
   id: string;
@@ -17,14 +17,16 @@ interface TemplateCardProps {
   cost?: number;
 }
 
-// Use original image URL directly (Supabase image transforms require Pro plan)
-function thumbnailUrl(url: string): string {
-  return url || "";
-}
-
 export function TemplateCard({ id, title, author, image, likes, uses, aspectRatio = "portrait", cost = 1 }: TemplateCardProps) {
   const [loaded, setLoaded] = useState(false);
-  const [src, setSrc] = useState(() => thumbnailUrl(image));
+
+  // Ref callback: if the browser finished loading the image before React
+  // attached onLoad (common with loading="lazy" + cached images), mark visible.
+  const imgRef = useCallback((node: HTMLImageElement | null) => {
+    if (node && node.complete && node.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, []);
 
   return (
     <div className="group relative rounded-2xl overflow-hidden bg-surface border border-white/5 hover:border-white/20 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(124,58,237,0.15)] hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] focus-within:ring-2 focus-within:ring-primary">
@@ -35,7 +37,8 @@ export function TemplateCard({ id, title, author, image, likes, uses, aspectRati
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/10 animate-pulse" />
         )}
         <img
-          src={src}
+          ref={imgRef}
+          src={image || ""}
           alt={title}
           className={cn(
             "w-full h-full object-cover transition-all duration-500 group-hover:scale-110",

@@ -17,27 +17,14 @@ interface TemplateCardProps {
   cost?: number;
 }
 
-// Append Supabase image transform params for thumbnails
-function thumbnailUrl(url: string, width = 400): string {
-  if (!url || !url.includes("supabase.co/storage")) return url;
-  // Try Supabase image transforms (works on Pro+), falls back gracefully on Free
-  try {
-    const u = new URL(url);
-    u.pathname = u.pathname.replace(
-      "/storage/v1/object/public/",
-      "/storage/v1/render/image/public/"
-    );
-    u.searchParams.set("width", String(width));
-    u.searchParams.set("quality", "75");
-    return u.toString();
-  } catch {
-    return url;
-  }
+// Use original image URL directly (Supabase image transforms require Pro plan)
+function thumbnailUrl(url: string): string {
+  return url || "";
 }
 
 export function TemplateCard({ id, title, author, image, likes, uses, aspectRatio = "portrait", cost = 1 }: TemplateCardProps) {
   const [loaded, setLoaded] = useState(false);
-  const [src, setSrc] = useState(() => thumbnailUrl(image, 400));
+  const [src, setSrc] = useState(() => thumbnailUrl(image));
 
   return (
     <div className="group relative rounded-2xl overflow-hidden bg-surface border border-white/5 hover:border-white/20 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(124,58,237,0.15)] hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] focus-within:ring-2 focus-within:ring-primary">
@@ -58,7 +45,7 @@ export function TemplateCard({ id, title, author, image, likes, uses, aspectRati
           loading="lazy"
           decoding="async"
           onLoad={() => setLoaded(true)}
-          onError={() => { if (src !== image) setSrc(image); }}
+          onError={() => { setLoaded(true); }}
         />
 
         {/* Hover Overlay */}

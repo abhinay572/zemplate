@@ -1,7 +1,6 @@
 import { Heart, Play, Download, Maximize2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
-import { useState, useCallback } from "react";
 
 interface TemplateCardProps {
   id: string;
@@ -18,37 +17,17 @@ interface TemplateCardProps {
 }
 
 export function TemplateCard({ id, title, author, image, likes, uses, aspectRatio = "portrait", cost = 1 }: TemplateCardProps) {
-  const [loaded, setLoaded] = useState(false);
-
-  // Ref callback: if the browser finished loading the image before React
-  // attached onLoad (common with loading="lazy" + cached images), mark visible.
-  const imgRef = useCallback((node: HTMLImageElement | null) => {
-    if (node && node.complete && node.naturalWidth > 0) {
-      setLoaded(true);
-    }
-  }, []);
-
   return (
     <div className="group relative rounded-2xl overflow-hidden bg-surface border border-white/5 hover:border-white/20 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(124,58,237,0.15)] hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] focus-within:ring-2 focus-within:ring-primary">
       {/* Image Container — uniform 3:4 for all cards */}
       <div className="relative w-full overflow-hidden bg-white/5 aspect-[3/4]">
-        {/* Low-quality placeholder bg */}
-        {!loaded && (
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/10 animate-pulse" />
-        )}
+        {/* Gradient placeholder visible behind image until it loads */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/10" />
         <img
-          ref={imgRef}
           src={image || ""}
           alt={title}
-          className={cn(
-            "w-full h-full object-cover transition-all duration-500 group-hover:scale-110",
-            loaded ? "opacity-100" : "opacity-0"
-          )}
+          className="relative w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           referrerPolicy="no-referrer"
-          loading="lazy"
-          decoding="async"
-          onLoad={() => setLoaded(true)}
-          onError={() => { setLoaded(true); }}
         />
 
         {/* Hover Overlay */}
@@ -86,7 +65,7 @@ export function TemplateCard({ id, title, author, image, likes, uses, aspectRati
 
         <div className="flex items-center justify-between mt-3">
           <div className="flex items-center gap-2">
-            <img src={author.avatar} alt={author.name} className="w-5 h-5 rounded-full object-cover border border-white/10" referrerPolicy="no-referrer" loading="lazy" />
+            <img src={author.avatar} alt={author.name} className="w-5 h-5 rounded-full object-cover border border-white/10" referrerPolicy="no-referrer" />
             <span className="text-xs font-medium text-white/60 hover:text-white/90 cursor-pointer transition-colors">
               {author.name}
             </span>
